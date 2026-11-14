@@ -17,7 +17,7 @@ use super::scan::{Scan, split_top};
 /// How deep proof.sty and mathpartir premises may nest.
 const MAX_NEST: usize = 64;
 /// Most nodes in one input.
-const MAX_NODES: usize = 2_000;
+pub(crate) const MAX_NODES: usize = 2_000;
 
 /// The line between premises and conclusion.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -86,13 +86,19 @@ pub fn is_proof(src: &str) -> bool {
 
 /// The proof trees in `src`, left to right.
 pub fn parse(src: &str) -> Result<Vec<Proof>, String> {
-    let mut p = Parser { s: Scan::new(src), stack: Vec::new(), done: Vec::new(), nodes: 0, bp: Bp::default() };
+    parse_syntaxes(src).map(|(trees, _)| trees)
+}
+
+/// The proof trees in `src` and the syntaxes they were written in (`ebproof`, `bussproofs`,
+/// `mathpartir`, `proof.sty`), each named once, in the order met.
+pub fn parse_syntaxes(src: &str) -> Result<(Vec<Proof>, Vec<&'static str>), String> {
+    let mut p = Parser::new(src);
     p.run(0)?;
     p.finish();
     if p.done.is_empty() {
         return Err("no proof found: start with \\hypo{…}, \\AxiomC{…}, \\inferrule{…}{…} or \\infer{…}{…}".into());
     }
-    Ok(p.done)
+    Ok((p.done, p.syntaxes))
 }
 
 /// bussproofs state: labels and line style for the next inference, and the sticky style.
@@ -110,9 +116,20 @@ struct Parser {
     done: Vec<Proof>,
     nodes: usize,
     bp: Bp,
+    syntaxes: Vec<&'static str>,
 }
 
 impl Parser {
+    fn new(src: &str) -> Self {
+        Parser { s: Scan::new(src), stack: Vec::new(), done: Vec::new(), nodes: 0, bp: Bp::default(), syntaxes: Vec::new() }
+    }
+
+    fn uses(&mut self, syntax: &'static str) {
+        if !self.syntaxes.contains(&syntax) {
+            self.syntaxes.push(syntax);
+        }
+    }
+
     fn count(&mut self) -> Result<(), String> {
         self.nodes += 1;
         if self.nodes > MAX_NODES { Err(format!("more than {MAX_NODES} steps in one proof")) } else { Ok(()) }
@@ -157,6 +174,7 @@ impl Parser {
             }
             "DisplayProof" | "DP" => self.finish(),
             "hypo" | "Hypo" => {
+                self.uses("ebproof");
                 let opts = self.s.opt().unwrap_or_default();
                 let text = self.s.arg().unwrap_or_default();
                 self.count()?;
@@ -167,6 +185,7 @@ impl Parser {
             }
             "infer" | "Infer" => self.infer(name, depth)?,
             "ellipsis" | "Ellipsis" => {
+                self.uses("ebproof");
                 let label = self.s.arg().unwrap_or_default();
                 let text = self.s.arg().unwrap_or_default();
                 self.count()?;
@@ -185,6 +204,7 @@ impl Parser {
                 }
             }
             "inferrule" => {
+                self.uses("mathpartir");
                 let p = self.inferrule(depth)?;
                 self.stack.push(p);
             }
@@ -209,6 +229,7 @@ impl Parser {
         let save = self.s.i;
         let opts = self.s.opt();
         if let Some(n) = self.s.digit_next() {
+            self.uses("ebproof");
             let label = self.s.opt();
             let text = self.s.arg().unwrap_or_default();
             self.count()?;
@@ -216,7 +237,8 @@ impl Parser {
             let mut p = Proof { concl: vec![Stmt::math(&text)], premises, rule: rule.unwrap_or(Rule::Single), left: None, right: None };
             apply_options(&mut p, opts.as_deref().unwrap_or(""));
             if let Some(l) = label.filter(|l| !l.trim().is_empty()) {
-                p.right = Some(Stmt::text(&l));
+                // `[{a]b}]`: braces keep a `]` inside the label.
+                p.right = Some(Stmt::text(unbrace(l.trim())));
             }
             self.stack.push(p);
             return Ok(());
@@ -229,6 +251,7 @@ impl Parser {
 
     /// proof.sty's `\infer[label]{conclusion}{premise & premise}` (and `\deduce`).
     fn proof_sty(&mut self, rule: Rule, depth: usize) -> Result<Proof, String> {
+        self.uses("proof.sty");
         let label = self.s.opt();
         let concl = self.s.arg().unwrap_or_default();
         let premises = self.s.arg().unwrap_or_default();
@@ -301,6 +324,7 @@ impl Parser {
             None => Stmt::text(&self.s.arg().unwrap_or_default()),
         };
         self.count()?;
+        self.uses("bussproofs");
         let premises = self.pop(arity, name)?;
         let rule = if arity == 0 { Rule::Leaf } else { self.bp.once.take().or(self.bp.always).unwrap_or(Rule::Single) };
         let (left, right) = if arity == 0 { (None, None) } else { (self.bp.left.take(), self.bp.right.take()) };
@@ -333,7 +357,7 @@ fn nested(src: &str, seps: &[&str], depth: usize) -> Result<Vec<Proof>, String> 
             continue;
         }
         if is_proof(t) {
-            let mut p = Parser { s: Scan::new(t), stack: Vec::new(), done: Vec::new(), nodes: 0, bp: Bp::default() };
+            let mut p = Parser::new(t);
             p.run(depth + 1)?;
             p.finish();
             out.append(&mut p.done);
@@ -378,6 +402,14 @@ fn apply_options(p: &mut Proof, opts: &str) {
         match k.as_str() {
             "left label" => p.left = Some(Stmt::text(&v)),
             "right label" | "label" => p.right = Some(Stmt::text(&v)),
+            // `template=\inserttext` sets the statement as text; ebproof's default is
+            // `$\inserttext$`, math.
+            "template" => {
+                let math = v.contains('$');
+                for c in &mut p.concl {
+                    c.math = math;
+                }
+            }
             _ => {}
         }
     }

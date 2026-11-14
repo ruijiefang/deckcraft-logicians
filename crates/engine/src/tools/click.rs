@@ -24,8 +24,9 @@ impl Session {
         if matches!(self.tool.drag, Some(Drag::Move { moved: false, .. })) {
             self.tool.drag = None;
         }
-        // A shape typeset from LaTeX, or an equation, is edited as its LaTeX: Insert ▸ Equation
-        // opens on it instead of a caret going into the text drawn from that LaTeX.
+        // A shape typeset from LaTeX, or an equation, is edited as its LaTeX: the Proof Tree
+        // builder (a proof) or Insert ▸ Equation opens on it instead of a caret going into the
+        // text drawn from that LaTeX.
         if let Some(Hit::Shape { id, .. }) = self.hit_test(p, tol)
             && let Some(root) = cmd::latex::latex_target(self.doc()?, id)
         {
@@ -34,8 +35,9 @@ impl Session {
                 sel.cells = None;
                 sel.shapes = vec![root];
             })?;
-            self.ui_requests.push(crate::UiRequest::Dialog { id: "equation".into(), params: Value::Null });
-            return Ok(json!({"dialog": "equation", "id": root}));
+            let dialog = cmd::latex::dialog_for(self.doc()?, root);
+            self.ui_requests.push(crate::UiRequest::Dialog { id: dialog.into(), params: Value::Null });
+            return Ok(json!({"dialog": dialog, "id": root}));
         }
         // In the text being edited: select the word double-clicked.
         if self.place_caret(p, tol, false)?.is_some() {

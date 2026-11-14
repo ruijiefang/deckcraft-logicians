@@ -24,10 +24,6 @@ impl Scan {
         self.cs.get(self.i).copied()
     }
 
-    fn peek_at(&self, k: usize) -> Option<char> {
-        self.cs.get(self.i + k).copied()
-    }
-
     pub(crate) fn bump(&mut self) -> Option<char> {
         let c = self.peek();
         self.i += 1;
@@ -145,16 +141,22 @@ impl Scan {
     }
 
     /// Whether a digit (an `\infer` arity) comes next, bare or braced.
+    /// An `\infer` arity: one bare digit, or a braced number (`{10}`; ebproof reads the arity
+    /// as an argument, so ten or more premises need the braces). Nothing is read otherwise.
     pub(crate) fn digit_next(&mut self) -> Option<usize> {
         self.ws();
-        match (self.peek(), self.peek_at(1), self.peek_at(2)) {
-            (Some(d), _, _) if d.is_ascii_digit() => {
+        match self.peek() {
+            Some(d) if d.is_ascii_digit() => {
                 self.i += 1;
                 d.to_digit(10).map(|d| d as usize)
             }
-            (Some('{'), Some(d), Some('}')) if d.is_ascii_digit() => {
-                self.i += 3;
-                d.to_digit(10).map(|d| d as usize)
+            Some('{') => {
+                let save = self.i;
+                let n = self.group().filter(|g| (1..=3).contains(&g.trim().len())).and_then(|g| g.trim().parse::<usize>().ok());
+                if n.is_none() {
+                    self.i = save;
+                }
+                n
             }
             _ => None,
         }

@@ -15,13 +15,14 @@
 mod array;
 mod layout;
 mod proof;
+pub mod proof_edit;
 mod runs;
 mod scan;
 #[cfg(test)]
 mod tests;
 
 pub use array::{Grid, GridKind};
-pub use layout::{Item, Typeset};
+pub use layout::{Item, Part, Region, Typeset};
 pub use proof::{Proof, Rule, Stmt, is_proof};
 
 use deckcraft_model::text::TextBody;

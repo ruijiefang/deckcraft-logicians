@@ -57,7 +57,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "LaTeX Source",
             [],
             None,
-            "{id?} → {id, latex, kind: typeset|equation} (the selected LaTeX shape or equation)",
+            "{id?} → {id, latex, kind: typeset|equation, size?, font?} (the selected LaTeX shape or equation; size and font: what a typeset one was set in)",
             has_selection,
             get
         ),
@@ -106,7 +106,11 @@ fn tag<'a>(sh: &'a Shape, name: &str) -> Option<&'a str> {
 
 /// Typesets `src` with the current slide's fonts doing the measuring.
 fn typeset_here(s: &Session, src: &str, style: &Style) -> std::result::Result<Typeset, String> {
-    let st = s.doc().map_err(|e| e.to_string())?;
+    typeset_on(s.doc().map_err(|e| e.to_string())?, src, style)
+}
+
+/// Typesets `src` with `st`'s current slide's fonts doing the measuring.
+fn typeset_on(st: &crate::DocState, src: &str, style: &Style) -> std::result::Result<Typeset, String> {
     let ctx = super::text::ctx_for(&st.doc, &st.selection).ok_or("no slide")?;
     let fields = deckcraft_text::NoFields;
     let rect = Rect::new(0.0, 0.0, 10_000.0, 10_000.0);
@@ -174,6 +178,44 @@ fn build(t: Typeset, at: (f64, f64), src: &str, style: &Style) -> Shape {
         descr,
         ..Default::default()
     }
+}
+
+/// A preview of LaTeX as `insert.latex` would place it: the shape at the origin (ids from
+/// 10 000, not the document's) and, for a proof, where each step's parts are.
+#[derive(Clone, Debug)]
+pub struct Preview {
+    pub shape: Shape,
+    pub regions: Vec<typeset::Region>,
+    pub w: f64,
+    pub h: f64,
+}
+
+/// Typesets `src` for a preview (the Proof Tree builder's canvas), measured with the current
+/// slide's fonts. `font` `None` is the default font.
+pub fn preview(st: &crate::DocState, src: &str, size: f64, font: Option<&str>) -> std::result::Result<Preview, String> {
+    let style = Style { font: Some(font.unwrap_or(DEFAULT_FONT).to_string()).filter(|f| !f.is_empty()), size };
+    let t = typeset_on(st, src, &style)?;
+    let (w, h, regions) = (t.w, t.h, t.regions.clone());
+    let mut shape = build(t, (0.0, 0.0), src, &style);
+    shape.id = ShapeId(9_999);
+    if let ShapeKind::Group { children, .. } = &mut shape.kind {
+        for (k, c) in children.iter_mut().enumerate() {
+            c.id = ShapeId(10_000 + k as u32);
+        }
+    }
+    Ok(Preview { shape, regions, w, h })
+}
+
+/// The size and font a LaTeX shape was typeset in, from its style tag.
+fn style_of(sh: &Shape) -> Option<Style> {
+    tag(sh, STYLE_TAG).and_then(parse_style_tag)
+}
+
+/// Which dialog edits the LaTeX shape `id`: the Proof Tree builder for a proof it can open as a
+/// tree, else the Equation dialog.
+pub(crate) fn dialog_for(st: &crate::DocState, id: ShapeId) -> &'static str {
+    let proof = st.shape(id).and_then(|sh| tag(sh, SOURCE_TAG)).is_some_and(|src| typeset::is_proof(src) && typeset::proof_edit::open(src).is_ok());
+    if proof { "proofTree" } else { "equation" }
 }
 
 fn base_name(kind: Kind) -> &'static str {
@@ -367,7 +409,12 @@ fn source(s: &Session, p: &Value, cmd: &str) -> Result<(ShapeId, Found, String)>
 fn get(s: &mut Session, p: &Value) -> Result<Value> {
     let (id, found, latex) = source(s, p, "latex.get")?;
     let kind = if found == Found::Equation { "equation" } else { "typeset" };
-    Ok(json!({"id": id, "latex": latex, "kind": kind}))
+    let mut v = json!({"id": id, "latex": latex, "kind": kind});
+    if let Some(style) = s.doc()?.shape(id).and_then(style_of) {
+        v["size"] = json!(style.size);
+        v["font"] = json!(style.font.unwrap_or_default());
+    }
+    Ok(v)
 }
 
 fn set(s: &mut Session, p: &Value) -> Result<Value> {
@@ -396,7 +443,7 @@ fn set(s: &mut Session, p: &Value) -> Result<Value> {
         super::text::fit_text_box(s, id)?;
         return Ok(json!({"id": id}));
     }
-    let style = style_param(p, tag(&old, STYLE_TAG).and_then(parse_style_tag));
+    let style = style_param(p, style_of(&old));
     let t = typeset_here(s, &src, &style).map_err(|e| bad(CMD, e))?;
     let kind = t.kind;
     let at = old.xfrm.map_or((0.0, 0.0), |x| (x.x, x.y));

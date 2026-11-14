@@ -202,8 +202,9 @@ fn asks_for_the_equation_dialog(s: &Session) -> bool {
     s.ui_requests.iter().any(|r| matches!(r, crate::UiRequest::Dialog { id, .. } if id == "equation"))
 }
 
-/// Double-clicking LaTeX opens Insert ▸ Equation on its source instead of a caret going into the
-/// text drawn from it: a typeset formula, a statement of a proof tree and an Office equation.
+/// Double-clicking LaTeX opens its editor on its source instead of a caret going into the text
+/// drawn from it: Insert ▸ Equation for a typeset formula and an Office equation, the Proof Tree
+/// builder for a statement of a proof tree.
 #[test]
 fn double_click_on_latex_opens_the_equation_dialog() {
     let mut s = session();
@@ -217,10 +218,10 @@ fn double_click_on_latex_opens_the_equation_dialog() {
     let (gx, gy) = (g.xfrm.unwrap().x, g.xfrm.unwrap().y);
     let (cx, cy) = centre(&first_statement);
     let e = shape(&s, &equation);
-    for (id, at) in [(&formula, centre(&f)), (&proof, (gx + cx, gy + cy)), (&equation, centre(&e))] {
+    for (id, at, dialog) in [(&formula, centre(&f), "equation"), (&proof, (gx + cx, gy + cy), "proofTree"), (&equation, centre(&e), "equation")] {
         let v = double_click(&mut s, at);
-        assert_eq!(v["dialog"], "equation", "{id}: {v}");
-        assert!(asks_for_the_equation_dialog(&s));
+        assert_eq!(v["dialog"], dialog, "{id}: {v}");
+        assert!(s.ui_requests.iter().any(|r| matches!(r, crate::UiRequest::Dialog { id, .. } if id == dialog)));
         let st = s.doc().unwrap();
         assert_eq!(st.selection.shapes, vec![deckcraft_model::ShapeId(id.as_u64().unwrap() as u32)]);
         assert!(st.selection.text.is_none(), "no caret in LaTeX's drawn text");

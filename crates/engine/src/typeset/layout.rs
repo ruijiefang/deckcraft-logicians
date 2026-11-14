@@ -33,7 +33,8 @@ pub enum Item {
     Line { x1: f64, y1: f64, x2: f64, y2: f64, dash: Option<&'static str> },
 }
 
-/// Typeset LaTeX: its pieces, its size and the thickness its lines are drawn with.
+/// Typeset LaTeX: its pieces, its size and the thickness its lines are drawn with, and for a
+/// proof, where each step's statement, rule and labels are (what the Proof Tree builder clicks).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Typeset {
     pub kind: Kind,
@@ -41,6 +42,39 @@ pub struct Typeset {
     pub h: f64,
     pub items: Vec<Item>,
     pub thickness: f64,
+    pub regions: Vec<Region>,
+}
+
+/// Which part of a proof step a region covers.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Part {
+    Statement,
+    Rule,
+    LeftLabel,
+    RightLabel,
+}
+
+/// Where a part of a proof step is drawn, in points from the typeset's top left. `path` names
+/// the step as [`super::proof_edit`] does: its tree, then a premise index per level.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Region {
+    pub path: Vec<usize>,
+    pub part: Part,
+    pub x: f64,
+    pub y: f64,
+    pub w: f64,
+    pub h: f64,
+}
+
+fn region(part: Part, x: f64, y: f64, w: f64, h: f64) -> Region {
+    Region { path: Vec::new(), part, x, y, w, h }
+}
+
+fn shift_regions(regions: &mut [Region], dx: f64, dy: f64) {
+    for r in regions {
+        r.x += dx;
+        r.y += dy;
+    }
 }
 
 /// A text body that is exactly as big as its text: no insets, no wrapping, no autofit.
@@ -128,6 +162,7 @@ fn thickness(style: &Style) -> f64 {
 /// (left and right edges, bottom), which is what the step below lines up with.
 struct Laid {
     items: Vec<Item>,
+    regions: Vec<Region>,
     w: f64,
     cl: f64,
     cr: f64,
@@ -139,39 +174,59 @@ pub(crate) fn proofs(trees: &[Proof], style: &Style, measure: Measure) -> Typese
     let laid: Vec<Laid> = trees.iter().map(|t| lay(t, style, measure, 0)).collect();
     let base = laid.iter().map(|l| l.cb).fold(0.0, f64::max);
     let mut items = Vec::new();
+    let mut regions = Vec::new();
     let mut x = 0.0;
-    for mut l in laid {
+    for (i, mut l) in laid.into_iter().enumerate() {
         shift(&mut l.items, x, base - l.cb);
+        shift_regions(&mut l.regions, x, base - l.cb);
         items.append(&mut l.items);
+        regions.extend(l.regions.into_iter().map(|mut r| {
+            r.path.insert(0, i);
+            r
+        }));
         x += l.w + TREE_GAP * style.size;
     }
-    finish(Kind::Proof, items, style)
+    finish(Kind::Proof, items, regions, style)
 }
 
 /// Moves the items to start at the origin.
-fn finish(kind: Kind, mut items: Vec<Item>, style: &Style) -> Typeset {
+fn finish(kind: Kind, mut items: Vec<Item>, mut regions: Vec<Region>, style: &Style) -> Typeset {
     let (x0, y0, x1, y1) = bounds(&items);
     shift(&mut items, -x0, -y0);
-    Typeset { kind, w: x1 - x0, h: y1 - y0, items, thickness: thickness(style) }
+    shift_regions(&mut regions, -x0, -y0);
+    Typeset { kind, w: x1 - x0, h: y1 - y0, items, thickness: thickness(style), regions }
 }
 
 fn lay(p: &Proof, style: &Style, measure: Measure, depth: usize) -> Laid {
     let em = style.size;
     let c = stmt_box(&p.concl, style, measure, Align::Center);
     if p.rule == Rule::Leaf && p.premises.is_empty() {
-        return Laid { w: c.w, cl: 0.0, cr: c.w, cb: c.h, items: vec![text(0.0, 0.0, c)] };
+        return Laid {
+            w: c.w,
+            cl: 0.0,
+            cr: c.w,
+            cb: c.h,
+            regions: vec![region(Part::Statement, 0.0, 0.0, c.w, c.h)],
+            items: vec![text(0.0, 0.0, c)],
+        };
     }
     let subs: Vec<Laid> = if depth >= MAX_DEPTH { Vec::new() } else { p.premises.iter().map(|q| lay(q, style, measure, depth + 1)).collect() };
     // Premises side by side, their conclusions' bottoms on one line.
     let base = subs.iter().map(|s| s.cb).fold(0.0, f64::max);
     let mut items = Vec::new();
+    let mut regions = Vec::new();
     let mut x = 0.0;
     let mut span: Option<(f64, f64)> = None;
-    for mut s in subs {
+    for (i, mut s) in subs.into_iter().enumerate() {
         let (l, r) = (x + s.cl, x + s.cr);
         span = Some(span.map_or((l, r), |(a, _)| (a, r)));
         shift(&mut s.items, x, base - s.cb);
+        shift_regions(&mut s.regions, x, base - s.cb);
         items.append(&mut s.items);
+        regions.extend(s.regions.into_iter().map(|mut r| {
+            r.path.insert(0, i);
+            r
+        }));
         x += s.w + SEPARATION * em;
     }
     // The rule covers the premises' conclusions and this conclusion, which is centred under them.
@@ -206,21 +261,31 @@ fn lay(p: &Proof, style: &Style, measure: Measure, depth: usize) -> Laid {
     let cx = center - c.w / 2.0;
     let (cw, ch) = (c.w, c.h);
     items.push(text(cx, cy, c));
+    regions.push(region(Part::Statement, cx, cy, cw, ch));
+    // The rule's band, a little taller than the line so it can be pointed at.
+    match p.rule {
+        Rule::Leaf => {}
+        Rule::Ellipsis => regions.push(region(Part::Rule, center - 0.25 * em, y, 0.5 * em, cy - y)),
+        _ => regions.push(region(Part::Rule, rl, y - 0.15 * em, rule_w, (cy - y).max(0.0) + 0.15 * em)),
+    }
     let small = Style { size: style.size * LABEL_SCALE, ..style.clone() };
     let (left_edge, right_edge) = if p.rule == Rule::Ellipsis { (center, center) } else { (rl, rr) };
     if let Some(r) = &p.right {
         let b = stmt_box(std::slice::from_ref(r), &small, measure, Align::Left);
-        let by = mid - b.h / 2.0;
-        items.push(text(right_edge + LABEL_GAP * em, by, b));
+        let (bx, by) = (right_edge + LABEL_GAP * em, mid - b.h / 2.0);
+        regions.push(region(Part::RightLabel, bx, by, b.w, b.h));
+        items.push(text(bx, by, b));
     }
     if let Some(l) = &p.left {
         let b = stmt_box(std::slice::from_ref(l), &small, measure, Align::Left);
         let (bx, by) = (left_edge - LABEL_GAP * em - b.w, mid - b.h / 2.0);
+        regions.push(region(Part::LeftLabel, bx, by, b.w, b.h));
         items.push(text(bx, by, b));
     }
     let (x0, y0, x1, _) = bounds(&items);
     shift(&mut items, -x0, -y0);
-    Laid { items, w: x1 - x0, cl: cx - x0, cr: cx + cw - x0, cb: cy + ch - y0 }
+    shift_regions(&mut regions, -x0, -y0);
+    Laid { items, regions, w: x1 - x0, cl: cx - x0, cr: cx + cw - x0, cb: cy + ch - y0 }
 }
 
 /// A grid: cells in columns, with the spec's rules.
@@ -323,7 +388,7 @@ pub(crate) fn grid(g: &Grid, style: &Style, measure: Measure) -> Typeset {
     }
     items.extend(g.rules_below.iter().map(|&ab| rule(ab, total_h)));
     // Rules may sit on the edges: the typeset's box is the grid's.
-    Typeset { kind: Kind::Grid, w: total_w, h: total_h, items, thickness: thickness(style) }
+    Typeset { kind: Kind::Grid, w: total_w, h: total_h, items, thickness: thickness(style), regions: Vec::new() }
 }
 
 /// A formula on one line (or several, split at `\\`, centred).
@@ -331,5 +396,5 @@ pub(crate) fn formula(src: &str, style: &Style, measure: Measure) -> Typeset {
     let lines: Vec<Vec<Piece>> = split_top(src, &["\\\\"]).iter().filter(|l| !l.trim().is_empty()).map(|l| runs::math_pieces(l)).collect();
     let b = boxed(if lines.is_empty() { vec![Vec::new()] } else { lines }, style, measure, Align::Center);
     let (w, h) = (b.w, b.h);
-    Typeset { kind: Kind::Formula, w, h, items: vec![text(0.0, 0.0, b)], thickness: thickness(style) }
+    Typeset { kind: Kind::Formula, w, h, items: vec![text(0.0, 0.0, b)], thickness: thickness(style), regions: Vec::new() }
 }
