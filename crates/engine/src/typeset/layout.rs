@@ -98,6 +98,8 @@ pub enum Part {
     Arrow,
     /// An arrow's label; `path` is the arrow's index and the label's.
     ArrowLabel,
+    /// A row of pseudo-code; `path` is its index.
+    Row,
 }
 
 /// Where a part of a proof step is drawn, in points from the typeset's top left. `path` names
@@ -142,6 +144,7 @@ pub(crate) fn body(paragraphs: Vec<Paragraph>) -> TextBody {
 }
 
 /// A measured text body; `base` is its first baseline from its top.
+#[derive(Clone)]
 pub(crate) struct Boxed {
     pub body: TextBody,
     pub w: f64,

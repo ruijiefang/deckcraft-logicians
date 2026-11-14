@@ -26,6 +26,8 @@ pub const SOURCE_TAG: &str = "DECKCRAFT_LATEX";
 /// The tag holding the size and font it was typeset in (`size=24;font=Liberation Serif`).
 pub const STYLE_TAG: &str = "DECKCRAFT_LATEX_STYLE";
 const DEFAULT_SIZE: f64 = 24.0;
+/// What an algorithm is set in when no size is given.
+pub const ALGORITHM_SIZE: f64 = 16.0;
 /// An OFL serif with italics (from craft-fonts); symbols it lacks come from font fallback.
 pub const DEFAULT_FONT: &str = "Liberation Serif";
 const MATH_NS: &str = "http://schemas.openxmlformats.org/officeDocument/2006/math";
@@ -232,7 +234,9 @@ fn build(t: Typeset, at: (f64, f64), src: &str, style: &Style) -> Shape {
         })
         .collect();
     let tags = vec![(SOURCE_TAG.to_string(), src.to_string()), (STYLE_TAG.to_string(), style_tag(style))];
-    let descr = if t.kind == Kind::Diagram {
+    let descr = if t.kind == Kind::Algorithm {
+        typeset::algo::open(src).map(|o| typeset::algo::describe(&o.algorithm)).unwrap_or_default().chars().take(1_000).collect()
+    } else if t.kind == Kind::Diagram {
         typeset::cd::open(src).map(|o| typeset::cd::describe(&o.diagram)).unwrap_or_default().chars().take(1_000).collect()
     } else {
         src.chars().take(1_000).collect::<String>()
@@ -328,6 +332,40 @@ pub fn preview_diagram(
     Ok(DiagramPreview { preview: Preview { shape, regions, w, h }, grid })
 }
 
+/// An algorithm laid out for the Pseudo-code tool (with hidden `end` rows drawn faintly), and
+/// its rows (what each region's index names).
+pub fn preview_algorithm(
+    st: &crate::DocState,
+    a: &typeset::algo::Algorithm,
+    size: f64,
+    font: Option<&str>,
+) -> std::result::Result<(Preview, Vec<typeset::algo::Row>), String> {
+    let style = Style { font: Some(font.unwrap_or(DEFAULT_FONT).to_string()).filter(|f| !f.is_empty()), size };
+    if !(size.is_finite() && (1.0..=400.0).contains(&size)) {
+        return Err("size must be between 1 and 400 pt".into());
+    }
+    let ctx = super::text::ctx_for(&st.doc, &st.selection).ok_or("no slide")?;
+    let fields = deckcraft_text::NoFields;
+    let rect = Rect::new(0.0, 0.0, 10_000.0, 10_000.0);
+    let measure = |b: &TextBody| {
+        let sh = Shape { text_box: true, text: Some(b.clone()), geom: Geom::preset("rect"), ..Default::default() };
+        let opts = deckcraft_text::Opts { rect, fields: &fields, prompt_color: None, no_shrink: true };
+        let base = deckcraft_text::layout(&ctx, &sh, b, &opts).lines.first().map_or(0.0, |l| l.baseline - rect.y0);
+        (deckcraft_text::fit_width(&ctx, &sh, b, rect, &fields), deckcraft_text::fit_height(&ctx, &sh, b, rect, &fields), base)
+    };
+    let t = typeset::algo::layout(a, &style, &measure, true);
+    let (w, h, regions) = (t.w, t.h, t.regions.clone());
+    let src = typeset::algo::write(a);
+    let mut shape = build(t, (0.0, 0.0), &src, &style);
+    shape.id = ShapeId(9_999);
+    if let ShapeKind::Group { children, .. } = &mut shape.kind {
+        for (k, c) in children.iter_mut().enumerate() {
+            c.id = ShapeId(10_000 + k as u32);
+        }
+    }
+    Ok((Preview { shape, regions, w, h }, typeset::algo::rows(a, true)))
+}
+
 /// The size and font a LaTeX shape was typeset in, from its style tag.
 fn style_of(sh: &Shape) -> Option<Style> {
     tag(sh, STYLE_TAG).and_then(parse_style_tag)
@@ -337,6 +375,9 @@ fn style_of(sh: &Shape) -> Option<Style> {
 /// Proof Tree builder for a proof it can open as a tree, else the Equation dialog.
 pub(crate) fn dialog_for(st: &crate::DocState, id: ShapeId) -> &'static str {
     let src = st.shape(id).and_then(|sh| tag(sh, SOURCE_TAG));
+    if src.is_some_and(|s| typeset::algo::is_algorithm(s) && typeset::algo::open(s).is_ok()) {
+        return "pseudocode";
+    }
     if src.is_some_and(|s| typeset::cd::is_diagram(s) && typeset::cd::open(s).is_ok()) {
         return "commutativeDiagram";
     }
@@ -350,6 +391,7 @@ fn base_name(kind: Kind) -> &'static str {
         Kind::Grid => "LaTeX Array",
         Kind::Proof => "Proof Tree",
         Kind::Diagram => "Commutative Diagram",
+        Kind::Algorithm => "Algorithm",
     }
 }
 
@@ -376,7 +418,11 @@ fn assign_ids(doc: &mut Presentation, sh: &mut Shape, cmd: &str) -> Result<()> {
 fn insert_latex(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "insert.latex";
     let src = str_param(p, "latex").ok_or_else(|| bad(CMD, "`latex` is required"))?.to_string();
-    let style = style_param(p, None);
+    let mut style = style_param(p, None);
+    // An algorithm of twenty lines at 24 pt would be taller than a slide.
+    if f64_param(p, "size").is_none() && typeset::algo::is_algorithm(&src) {
+        style.size = ALGORITHM_SIZE;
+    }
     let t = typeset_here(s, &src, &style).map_err(|e| bad(CMD, e))?;
     let kind = t.kind;
     let at = place(s, p, t.w, t.h);

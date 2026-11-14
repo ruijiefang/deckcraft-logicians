@@ -414,3 +414,33 @@ fn a_diagram_survives_a_pptx_round_trip() {
     assert_eq!(arrows(g).len(), arrows(&before).len());
     assert!(arrows(g).iter().all(|p| p.line.as_ref().is_some_and(|l| l.width.is_some())));
 }
+
+const ALGORITHM: &str = r"\begin{algorithm}
+\caption{Count}
+\begin{algorithmic}[1]
+  \State $n \gets 0$
+  \ForAll{$x \in S$}
+    \State $n \gets n + 1$ \Comment{One more}
+  \EndFor
+  \State \Return $n$
+\end{algorithmic}
+\end{algorithm}";
+
+/// Pseudo-code is a figure-like group set at 16 pt; double-clicking it asks for the Pseudo-code tool.
+#[test]
+fn an_algorithm_is_a_group_opened_by_the_pseudocode_tool() {
+    let mut s = session();
+    let v = s.execute("insert.latex", &json!({"latex": ALGORITHM, "rect": [100, 100, 0, 0]})).unwrap();
+    assert_eq!(v["kind"], "algorithm");
+    let g = shape(&s, &v["id"]);
+    assert!(g.is_group() && g.name.starts_with("Algorithm"));
+    assert!(tag(&g, super::STYLE_TAG).is_some_and(|t| t.starts_with("size=16;")));
+    let texts: Vec<String> = g.children().iter().filter_map(|c| c.text.as_ref()).map(|t| t.text()).collect();
+    assert!(texts.iter().any(|t| t.starts_with("Algorithm 1")) && texts.iter().any(|t| t == "One more"), "{texts:?}");
+    assert!(g.descr.starts_with("Algorithm 1: Count."), "{}", g.descr);
+    let (gx, gy) = (g.xfrm.unwrap().x, g.xfrm.unwrap().y);
+    let first = g.children().iter().find(|c| c.text.as_ref().is_some_and(|t| t.text().contains('←'))).cloned().unwrap();
+    let (cx, cy) = centre(&first);
+    let v = double_click(&mut s, (gx + cx, gy + cy));
+    assert_eq!(v["dialog"], "pseudocode", "{v}");
+}

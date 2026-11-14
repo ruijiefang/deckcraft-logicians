@@ -711,7 +711,7 @@ impl Builder {
             Part::LeftLabel => format!("Left label of: {what}"),
             Part::RightLabel => format!("Right label of: {what}"),
             // Diagrams' parts; a proof has none.
-            Part::Object | Part::Arrow | Part::ArrowLabel => what,
+            Part::Object | Part::Arrow | Part::ArrowLabel | Part::Row => what,
         }
     }
 

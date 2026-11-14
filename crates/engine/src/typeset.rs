@@ -13,6 +13,7 @@
 //! is available. Office Math equations ([`crate::cmd::latex`]'s `insert.equation`) keep the
 //! equation's structure for PowerPoint instead.
 
+pub mod algo;
 mod array;
 pub mod cd;
 mod layout;
@@ -39,6 +40,7 @@ pub enum Kind {
     Grid,
     Proof,
     Diagram,
+    Algorithm,
 }
 
 impl Kind {
@@ -48,6 +50,7 @@ impl Kind {
             Kind::Grid => "grid",
             Kind::Proof => "proof",
             Kind::Diagram => "diagram",
+            Kind::Algorithm => "algorithm",
         }
     }
 }
@@ -67,7 +70,9 @@ pub type Measure<'a> = &'a dyn Fn(&TextBody) -> (f64, f64, f64);
 /// What `src` would be typeset as, without typesetting it.
 pub fn kind_of(src: &str) -> Kind {
     let src = src.trim();
-    if cd::is_diagram(src) {
+    if algo::is_algorithm(src) {
+        Kind::Algorithm
+    } else if cd::is_diagram(src) {
         Kind::Diagram
     } else if is_proof(src) {
         Kind::Proof
@@ -89,6 +94,10 @@ pub fn typeset(src: &str, style: &Style, measure: Measure) -> Result<Typeset, St
     }
     if !(style.size.is_finite() && (1.0..=400.0).contains(&style.size)) {
         return Err("size must be between 1 and 400 pt".into());
+    }
+    if algo::is_algorithm(src) {
+        let a = algo::open(src)?.algorithm;
+        return Ok(algo::layout(&a, style, measure, false));
     }
     if cd::is_diagram(src) {
         let d = cd::open(src)?.diagram;
