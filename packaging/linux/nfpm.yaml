@@ -13,14 +13,16 @@ release: 1
 section: editors
 priority: optional
 maintainer: ${DECKCRAFT_MAINTAINER}
-vendor: Learning Machines LLC
-homepage: https://getartcraft.com/apps/deckcraft
+vendor: DeckCraft Logicians Edition contributors
+homepage: https://github.com/storytold/deckcraft
 license: MIT OR Apache-2.0
 description: |-
   Open-source, native presentation app that works the way PowerPoint users
   expect. Themes, layouts, shapes, pictures, tables, charts, transitions and
   animations; opens and saves PowerPoint (.pptx) files; full-screen slide show
   with presenter view; GPU rendering (wgpu).
+  Logicians Edition (based on DeckCraft by the ArtCraft team): typeset LaTeX
+  with the symbols of logic, proof trees and commutative diagrams.
   Includes deckcraft-cli, a headless renderer and command runner.
 
 # The binaries link only glibc and libgcc_s directly. Windowing (X11/Wayland, xkbcommon) and the

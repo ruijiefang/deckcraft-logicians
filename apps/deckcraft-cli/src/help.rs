@@ -160,8 +160,8 @@ median and slowest of N runs (5 by default, 1 to 1000) as a table, or as JSON wi
     Subcommand {
         name: "links",
         usage: "links",
-        summary: "print the DeckCraft community and project links",
-        details: "Prints the DeckCraft community and project links.",
+        summary: "print the edition and its project links",
+        details: "Prints the edition's name, what it is based on, and its source and issues links.",
     },
     Subcommand { name: "version", usage: "--version", summary: "print the version", details: "Prints the version of deckcraft-cli." },
 ];

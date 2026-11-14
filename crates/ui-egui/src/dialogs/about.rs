@@ -18,17 +18,17 @@ pub(super) fn credits_block(ui: &mut Ui, models: bool) -> Rect {
 pub fn about(_app: &mut SlideApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     ui.vertical_centered(|ui| {
-        let (r, _) = ui.allocate_exact_size(vec2(64.0, 64.0), Sense::hover());
+        let (r, _) = ui.allocate_exact_size(vec2(72.0, 72.0), Sense::hover());
         paint_logo(ui.painter(), r);
         ui.label(egui::RichText::new("DeckCraft").font(theme::bold(22.0)));
+        ui.label(egui::RichText::new("Logicians Edition").color(t.text_dim));
         ui.label(egui::RichText::new(version_line()).color(t.text_dim));
         ui.add_space(6.0);
-        ui.label("Presentations and slide shows, rebuilt from scratch in pure Rust.");
+        ui.label("Presentations for logic, mathematics and computer science: typeset LaTeX, proof trees and commutative diagrams.");
         ui.label("An open-source, clean-room project. Not affiliated with Microsoft.");
+        ui.label(deckcraft_engine::links::BASED_ON);
         ui.add_space(6.0);
-        ui.hyperlink_to("Join our community on Discord", deckcraft_engine::links::DISCORD);
-        ui.hyperlink_to("getartcraft.com/apps/deckcraft", deckcraft_engine::links::APP_PAGE);
-        ui.hyperlink_to("Source on GitHub", deckcraft_engine::links::GITHUB);
+        ui.hyperlink_to("DeckCraft source on GitHub", deckcraft_engine::links::GITHUB);
         ui.add_space(6.0);
         ui.label(egui::RichText::new("MIT OR Apache-2.0 · © 2026 ArtCraft Team and the DeckCraft contributors").size(11.0).color(t.text_faint));
     });
@@ -49,20 +49,32 @@ pub fn version_line() -> String {
     s
 }
 
-/// DeckCraft's mark, drawn in code: a slide card with a play triangle in our orange.
+/// The Logicians Edition mark (`docs/brand/logicians-mark.svg`, drawn at 256 px).
+const MARK_PNG: &[u8] = include_bytes!("../../../../docs/brand/logicians-mark.png");
+
+/// The edition's mark: DeckCraft's board with a turnstile and a cloaked logician on the orange
+/// tile. An orange tile alone if the picture can't be read.
 pub fn paint_logo(p: &egui::Painter, r: Rect) {
-    let orange = Color32::from_rgb(0xF2, 0x6B, 0x1D);
-    let deep = Color32::from_rgb(0xC2, 0x4E, 0x14);
-    let card = r.shrink(r.width() * 0.08);
-    p.rect_filled(card.translate(vec2(r.width() * 0.04, r.width() * 0.05)), CornerRadius::same((r.width() * 0.14) as u8), deep);
-    p.rect_filled(card, CornerRadius::same((r.width() * 0.14) as u8), orange);
-    let c = card.center();
-    let s = card.width() * 0.22;
-    p.add(egui::Shape::convex_polygon(
-        vec![pos2(c.x - s * 0.7, c.y - s), pos2(c.x + s, c.y), pos2(c.x - s * 0.7, c.y + s)],
-        Color32::WHITE,
-        Stroke::NONE,
-    ));
+    let ctx = p.ctx();
+    let id = egui::Id::unique("logicians-mark");
+    let tex = ctx.data(|d| d.get_temp::<egui::TextureHandle>(id)).or_else(|| {
+        let img = deckcraft_render::decode_image(MARK_PNG)?;
+        let size = [img.width() as usize, img.height() as usize];
+        let color = egui::ColorImage::from_rgba_unmultiplied(size, img.as_raw());
+        let tex = ctx.load_texture("logicians-mark", color, egui::TextureOptions::LINEAR);
+        ctx.data_mut(|d| d.insert_temp(id, tex.clone()));
+        Some(tex)
+    });
+    match tex {
+        Some(t) => {
+            p.image(t.id(), r, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+        }
+        None => {
+            let tile = r.shrink(r.width() * 0.03);
+            p.rect_filled(tile, CornerRadius::same((r.width() * 0.22) as u8), Color32::from_rgb(0xF2, 0x6B, 0x1D));
+            p.rect_stroke(tile, CornerRadius::same((r.width() * 0.22) as u8), Stroke::NONE, egui::StrokeKind::Inside);
+        }
+    }
 }
 
 #[cfg(test)]

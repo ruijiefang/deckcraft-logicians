@@ -8,7 +8,7 @@
   <name>DeckCraft</name>
   <summary>Create and present slide decks</summary>
   <developer id="ai.storyteller">
-    <name>Learning Machines LLC</name>
+    <name>DeckCraft Logicians Edition contributors</name>
   </developer>
   <description>
     <p>
@@ -17,16 +17,21 @@
       and presents them full screen with a presenter view.
     </p>
     <p>
+      This Logicians Edition, based on DeckCraft by the ArtCraft team, adds typeset LaTeX with
+      the symbols of logic, proof trees with a visual builder, and commutative diagrams with a
+      grid editor.
+    </p>
+    <p>
       Every action is also a command that the command line and AI agents (through MCP) can drive.
     </p>
   </description>
   <launchable type="desktop-id">ai.storyteller.deckcraft.desktop</launchable>
   <icon type="stock">ai.storyteller.deckcraft</icon>
   <!-- Only url types known to appstream 0.15 (Ubuntu 22.04, where CI validates): no vcs-browser. -->
-  <url type="homepage">https://getartcraft.com/apps/deckcraft</url>
+  <url type="homepage">https://github.com/storytold/deckcraft</url>
   <url type="bugtracker">https://github.com/storytold/deckcraft/issues</url>
   <url type="help">https://github.com/storytold/deckcraft</url>
-  <url type="contact">https://discord.gg/artcraft</url>
+  <url type="contact">https://github.com/storytold/deckcraft/issues</url>
   <categories>
     <category>Office</category>
     <category>Presentation</category>

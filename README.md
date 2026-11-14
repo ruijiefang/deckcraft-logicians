@@ -1,29 +1,26 @@
 <p align="center">
-  <a href="https://getartcraft.com/">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/brand/artcraft-logo-white.svg">
-      <img alt="ArtCraft" src="docs/brand/artcraft-logo.svg" width="200">
-    </picture>
-  </a>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logicians-logo-white.svg">
+    <img alt="DeckCraft Logicians Edition: DeckCraft's presentation board with a turnstile on it and a cloaked logician pointing a wand at it" src="docs/brand/logicians-logo.svg" width="460">
+  </picture>
+</p>
+
+<h1 align="center">DeckCraft Logicians Edition</h1>
+
+<p align="center">
+  <b>Presentations and slide shows for logicians: an open-source, modern presentation designer built in pure Rust.</b>
 </p>
 
 <p align="center">
-  <img src="assets/app-icon/hicolor/256x256/apps/ai.storyteller.deckcraft.png" width="128" height="128" alt="DeckCraft icon: a presentation screen with a bar chart on an orange tile">
-</p>
-
-<h1 align="center">DeckCraft (Logicians version)</h1>
-
-<p align="center">
-  <b>Presentations and slide shows; an open-source, modern presentation and slide designer for logicians, built in pure Rust.</b>
-</p>
-
-<p align="center">
-  DeckCraft-Logicians is a modified version of DeckCraft for practicioners of logic, mathematics, and computer science. 
-  Build decks <strong>native LaTeX support for logical symbols and a visual proof tree editor via the
-  ebproofs package</strong>. DeckCraft also allows you to build with themes, layouts, shapes, pictures, tables, charts, transitions and animations,
-  open and save .pptx presentation files, and present them full screen. Native on macOS, Windows, Linux
-  and FreeBSD, and in the browser. Every button is also a command that the CLI and AI agents
-  (through MCP) can drive.
+  DeckCraft Logicians Edition is a modified version of DeckCraft for practitioners of logic,
+  mathematics and computer science. Build decks with <strong>typeset LaTeX that knows the symbols of
+  logic</strong> (⊢ ⊨ ∀ ∃ ¬ □ ⊥ …), <strong>proof trees</strong> written in ebproof, bussproofs,
+  mathpartir or proof.sty syntax or built step by step in a visual Proof Tree builder, and
+  <strong>commutative diagrams</strong> in tikz-cd drawn on a grid in the manner of quiver. Each
+  keeps its LaTeX, ready to copy into your paper. As in DeckCraft, you also get themes, layouts,
+  shapes, pictures, tables, charts, transitions and animations, .pptx files and full-screen
+  presenting, natively on macOS, Windows, Linux and FreeBSD, and in the browser. Every button is
+  also a command that the CLI and AI agents (through MCP) can drive.
 </p>
 
 <p align="center">
@@ -36,20 +33,11 @@
   <a href="https://coderabbit.ai"><img alt="Reviewed by CodeRabbit" src="https://img.shields.io/coderabbit/prs/github/storytold/deckcraft?style=flat-square&label=Reviewed%20by%20CodeRabbit&logo=coderabbit"></a>
 </p>
 
-<p align="center">
-  <a href="https://discord.gg/artcraft"><img alt="Join the ArtCraft community on Discord" src="https://img.shields.io/badge/Join%20us%20on%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" height="40"></a>
-</p>
-
-<p align="center">
-  <a href="https://getartcraft.com/apps/deckcraft"><b>DeckCraft on getartcraft.com</b></a> ·
-  <a href="https://getartcraft.com/">ArtCraft</a> ·
-  <a href="https://getartcraft.com/apps">All Crafting Apps</a>
-</p>
-
 > [!NOTE]
-> **ArtCraft is a community of artists from all walks of life.** Painters, photographers,
-> filmmakers, illustrators, designers, animators, hobbyists, and people who picked up a pencil
-> last week. If you make things, you're one of us. **[Come say hi on Discord](https://discord.gg/artcraft).**
+> **DeckCraft Logicians Edition is a modified version of DeckCraft.** It is based on
+> [DeckCraft](https://github.com/storytold/deckcraft) by the ArtCraft team, and adds typeset LaTeX,
+> proof trees and commutative diagrams. It is not made, endorsed or supported by the ArtCraft
+> team; report its problems here rather than to DeckCraft.
 
 <p align="center">
   <img alt="DeckCraft editing a slide: ribbon, slide thumbnails with sections, a process diagram on the canvas, notes and status bar" src="docs/images/editor.png" width="900">
@@ -62,7 +50,7 @@
   <a href="#agents-cli-and-mcp">Agents, CLI and MCP</a> ·
   <a href="#roadmap">Roadmap</a> ·
   <a href="#downloads">Downloads</a> ·
-  <a href="#the-crafting-apps">The Crafting Apps</a> ·
+  <a href="#based-on-deckcraft">Based on DeckCraft</a> ·
   <a href="#license-and-credits">License</a>
 </p>
 
@@ -71,6 +59,13 @@
 DeckCraft is in alpha, heading for beta (see the [roadmap](ROADMAP.md)).
 Today it can:
 
+- **Typeset math and logic** (this edition): LaTeX formulas with the symbols of logic, arrays
+  and truth tables, aligned derivations, and Office equations, also inside a line of text;
+  proof trees in ebproof, bussproofs, mathpartir or proof.sty syntax, and a visual Proof Tree
+  builder with templates for natural deduction; commutative diagrams in tikz-cd, with a grid
+  editor for objects, arrows, 2-cells, pullback corners and every tikz-cd arrow style. All of them
+  keep their LaTeX and scale with their box (see the
+  [tutorial](#tutorial-latex-equations-proof-trees-and-commutative-diagrams)).
 - **Make decks**: slide masters and eleven layouts with placeholders that inherit position and
   formatting, eight original themes with colour and font schemes, sections, notes, comments,
   headers and footers, custom slide sizes.
@@ -82,16 +77,24 @@ Today it can:
   columns, autofit, vertical text, fields and hyperlinks.
 - **Add content**: pictures with crop and corrections, tables with styles, charts, SmartArt basics,
   audio and video (MP3, AAC, FLAC, ALAC, Ogg, Opus, WAV, AIFF; H.264, HEVC, VP9, AV1).
-- **Typeset math and logic**: LaTeX formulas, arrays and proof trees (ebproof, bussproofs,
-  mathpartir, proof.sty), equations inside a line of text, a visual Proof Tree builder, and
-  commutative diagrams (tikz-cd) drawn in a grid editor (see the
-  [tutorial](#tutorial-latex-equations-proof-trees-and-commutative-diagrams)).
 - **Present**: transitions (including Morph), entrance/emphasis/exit and motion-path animations,
   by-paragraph builds, full-screen slide show, presenter view, pen, rehearse timings, media playback.
 - **Exchange files**: open and save .pptx presentations, export PDF (slides, notes pages, handouts
   with selectable text), PNG/JPEG, an animated GIF of the deck and outlines. Unsaved work is kept by AutoRecover.
 - **Automate**: 200+ commands with undo, all scriptable from the CLI, a JSON control channel and an
-  MCP server for AI agents.
+  MCP server for AI agents, including `insert.latex`, `insert.equation`, `latex.get` and
+  `latex.set` for LaTeX, proofs and diagrams.
+
+<table>
+  <tr>
+    <td width="50%"><img alt="A slide with a first-order formula, a truth table, an aligned derivation, an Office equation and a sentence with an inline equation" src="docs/images/latex-formulas.png"><br><sub>Typeset LaTeX: formulas, a truth table, a derivation, an equation in a sentence</sub></td>
+    <td width="50%"><img alt="The Proof Tree builder with a natural-deduction proof and one step selected" src="docs/images/latex-proof-builder.png"><br><sub>The Proof Tree builder</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img alt="The Commutative Diagram editor with a pullback square and an arrow selected" src="docs/images/cd-editor.png"><br><sub>The Commutative Diagram editor</sub></td>
+    <td width="50%"><img alt="A slide of commutative diagrams: a pullback, a natural transformation, many kinds of arrow and an adjunction" src="docs/images/cd-diagrams.png"><br><sub>Commutative diagrams on a slide</sub></td>
+  </tr>
+</table>
 
 <table>
   <tr>
@@ -115,10 +118,29 @@ PDF export uses the shared `craft-pdf` writer with import features disabled. See
 [`crates/pdf/README.md`](crates/pdf/README.md) for the dependency and validation requirements.
 
 ```sh
-git clone https://github.com/storytold/deckcraft
+git clone https://github.com/ruijiefang/deckcraft
 cd deckcraft
+cargo run --release -p deckcraft -- --sample            # the app, on the sample deck
 cargo run --release -p deckcraft-cli -- render --sample --all --scale 1 out/
 ```
+
+Then try **Insert ▸ Equation**, **Insert ▸ Proof Tree** and **Insert ▸ Commutative Diagram**
+(the [tutorial](#tutorial-latex-equations-proof-trees-and-commutative-diagrams) walks through
+them).
+
+LaTeX is read by craft-math, from [craft-libs](https://github.com/storytold/craft-libs). The
+names from amssymb and the logic packages (`\vDash` ⊨, `\nvdash` ⊬, `\Box` □, `\lrcorner` ⌟ for
+pullback corners…) need craft-math changes that DeckCraft's pinned craft-libs doesn't have yet
+(they are on craft-libs' `craft-math-latex-logic-symbols` branch, not yet published). Until the
+pin moves, put a craft-libs checkout with those changes next to this repository and build with:
+
+```sh
+cargo build --release -p deckcraft -p deckcraft-cli \
+  --config 'patch."https://github.com/storytold/craft-libs".craft-math.path="../craft-libs/crates/math"'
+```
+
+The patch rewrites `Cargo.lock`; restore it (`git checkout Cargo.lock`) rather than committing
+it. Without the patch everything builds and works, and those names show as written.
 
 On Linux, the build also needs the ALSA headers for slide-show sound: `alsa-lib-devel` on Fedora,
 `libasound2-dev` on Debian and Ubuntu, `alsa-lib` on Arch. Without them it stops at `alsa-sys`.
@@ -558,6 +580,16 @@ deckcraft-cli mcp --connect 7990        # drive the running app (deckcraft --con
 deckcraft-cli mcp --automation-read-root DIR --automation-write-root DIR   # confine the headless agent to folders
 ```
 
+LaTeX, proof trees and commutative diagrams are commands too: `insert.latex` typesets a formula,
+grid, proof or tikz-cd diagram, `insert.equation` makes an Office equation, and `latex.get` and
+`latex.set` read and change one in place. For example:
+
+```sh
+deckcraft-cli run --cmd 'insert.latex={"latex":"\\forall x\\, P(x) \\vdash \\exists y\\, P(y)","size":32}' --export formula.png
+```
+
+[From scripts and agents](#7-from-scripts-and-agents) in the tutorial has more.
+
 ## Roadmap
 
 DeckCraft is in **alpha**. It covers **84% of the features tracked in [`docs/target-app-parity.md`](docs/target-app-parity.md) by breadth** (92% of the core
@@ -566,8 +598,17 @@ See [ROADMAP.md](ROADMAP.md) for the stage, numbers by dimension and what's next
 [docs/target-app-parity.md](docs/target-app-parity.md) for the full assessment,
 [docs/gaps.md](docs/gaps.md) for every known shortfall and
 [docs/parity-checklist.md](docs/parity-checklist.md) for the feature-by-feature checklist.
+This edition's additions are in the ROADMAP's progress log, and their known limitations under
+[Typeset LaTeX: known limitations](ROADMAP.md#typeset-latex-known-limitations) there and in the
+tutorial's [Limitations](#limitations).
 
 ## Downloads
+
+> [!IMPORTANT]
+> The builds below are DeckCraft's official releases, by the ArtCraft team. They don't include
+> this edition's LaTeX, proof trees or commutative diagrams. To use those, build this edition from
+> source ([Getting started](#getting-started)); on Linux, `packaging/linux/package.sh` makes a
+> `.deb` of your build.
 
 **Download DeckCraft** from GitHub: the [latest release](https://github.com/storytold/deckcraft/releases/latest) has every build listed below, and [all releases](https://github.com/storytold/deckcraft/releases) has earlier versions and their notes. `<ver>` in the file names is the version number, and `SHA256SUMS.txt` lists a checksum for every file.
 
@@ -666,54 +707,13 @@ ALSA headers).
 |---|---|---|
 | Static site | `deckcraft-web-<ver>.zip` | Runs in a modern browser; host it on any static server |
 
-## The Crafting Apps
+## Based on DeckCraft
 
-DeckCraft is one of the **Crafting Apps**: free, open-source creative tools from the
-[ArtCraft](https://getartcraft.com/) team, each written from scratch in Rust and each able to
-stand on its own.
-
-| | App | What it's for | Code | Learn more |
-|:-:|---|---|---|---|
-| <img src="https://raw.githubusercontent.com/storytold/photocraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.photocraft.png" alt="" width="32" height="32"> | **PhotoCraft** | Image editing: layers, masks, type and real PSD files | [GitHub](https://github.com/storytold/photocraft) | [Website](https://getartcraft.com/apps/photocraft) |
-| <img src="https://raw.githubusercontent.com/storytold/vectorcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.vectorcraft.png" alt="" width="32" height="32"> | **VectorCraft** | Vector illustration | [GitHub](https://github.com/storytold/vectorcraft) | [Website](https://getartcraft.com/apps/vectorcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/filmcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.filmcraft.png" alt="" width="32" height="32"> | **FilmCraft** | Video editing, color and sound | [GitHub](https://github.com/storytold/filmcraft) | [Website](https://getartcraft.com/apps/filmcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/lightcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.lightcraft.png" alt="" width="32" height="32"> | **LightCraft** | Photo library and raw development | [GitHub](https://github.com/storytold/lightcraft) | [Website](https://getartcraft.com/apps/lightcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/pdfcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.pdfcraft.png" alt="" width="32" height="32"> | **PdfCraft** | Reading, organizing and protecting PDFs | [GitHub](https://github.com/storytold/pdfcraft) | [Website](https://getartcraft.com/apps/pdfcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/effectcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.effectcraft.png" alt="" width="32" height="32"> | **EffectCraft** | Motion graphics and visual effects | [GitHub](https://github.com/storytold/effectcraft) | [Website](https://getartcraft.com/apps/effectcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/designcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.designcraft.png" alt="" width="32" height="32"> | **DesignCraft** | Page layout and publishing | [GitHub](https://github.com/storytold/designcraft) | [Website](https://getartcraft.com/apps/designcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/figcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.figcraft.png" alt="" width="32" height="32"> | **FigCraft** | Interface design and prototyping | [GitHub](https://github.com/storytold/figcraft) | [Website](https://getartcraft.com/apps/figcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/wordcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.wordcraft.png" alt="" width="32" height="32"> | **WordCraft** | Word processing and documents | [GitHub](https://github.com/storytold/wordcraft) | [Website](https://getartcraft.com/apps/wordcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/soundcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.soundcraft.png" alt="" width="32" height="32"> | **SoundCraft** | Audio recording and editing | [GitHub](https://github.com/storytold/soundcraft) | [Website](https://getartcraft.com/apps/soundcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/deckcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.deckcraft.png" alt="" width="32" height="32"> | **DeckCraft** | Presentations and slide decks | [GitHub](https://github.com/storytold/deckcraft) | [Website](https://getartcraft.com/apps/deckcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/cadcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.cadcraft.png" alt="" width="32" height="32"> | **CADCraft** | Computer-aided design | [GitHub](https://github.com/storytold/cadcraft) | [Website](https://getartcraft.com/apps/cadcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/gridcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.gridcraft.png" alt="" width="32" height="32"> | **GridCraft** | Spreadsheets and data | [GitHub](https://github.com/storytold/gridcraft) | [Website](https://getartcraft.com/apps/gridcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/texturecraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.texturecraft.png" alt="" width="32" height="32"> | **TextureCraft** | 3D texture painting | [GitHub](https://github.com/storytold/texturecraft) | [Website](https://getartcraft.com/apps/texturecraft) |
-| <img src="https://raw.githubusercontent.com/storytold/craft-anything/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.craft-anything.png" alt="" width="32" height="32"> | **Craft Anything** | See how any software works, then build your own | [GitHub](https://github.com/storytold/craft-anything) | [Website](https://getartcraft.com/apps/craft-anything) |
-| <img src="https://raw.githubusercontent.com/tangency-labs/solidcraft/main/assets/icons/app/linux/exports/hicolor/64x64/apps/io.tangencylabs.solidcraft.png" alt="" width="32" height="32"> | **SolidCraft** | Parametric 3D CAD by Tangency Labs (community app) | [GitHub](https://github.com/tangency-labs/solidcraft) | |
-
-And [**ArtCraft**](https://getartcraft.com/) itself, our AI image and video studio for artists who want real control.
-
-<br>
-
-<p align="center">
-  <a href="https://discord.gg/artcraft"><img alt="Join the ArtCraft community on Discord" src="https://img.shields.io/badge/Join%20us%20on%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" height="40"></a>
-</p>
-
-<h3 align="center">Come make things with us</h3>
-
-<p align="center">
-  Our Discord is where artists of every kind hang out: people who paint, shoot, draw, cut film,
-  set type, and people still figuring out what they like to make. Share what you're working on,
-  ask for help, tell us what's broken, or tell us what you wish these tools could do.
-  Whatever your medium and however long you've been at it, you're welcome here.
-</p>
-
-<p align="center">
-  <a href="https://discord.gg/artcraft"><b>discord.gg/artcraft</b></a> ·
-  <a href="https://getartcraft.com/">getartcraft.com</a> ·
-  <a href="https://getartcraft.com/apps">The Crafting Apps</a> ·
-  <a href="https://getartcraft.com/apps/deckcraft">DeckCraft</a>
-</p>
+This edition is based on [DeckCraft](https://github.com/storytold/deckcraft), one of the free,
+open-source Crafting Apps by the ArtCraft team, each written from scratch in Rust. DeckCraft
+itself, its releases and its community are theirs. This edition adds what logicians need on
+their slides (the [tutorial](#tutorial-latex-equations-proof-trees-and-commutative-diagrams)
+covers it) and is maintained separately.
 
 ## License and credits
 
@@ -726,12 +726,13 @@ with its author, source and license in [ATTRIBUTION.md](ATTRIBUTION.md).
 DeckCraft's themes, layouts, shape geometry, icons and sample decks are original work, drawn or
 generated in code; no proprietary artwork, fonts, themes or templates are used.
 
-The ArtCraft name, wordmark and logos in [`docs/brand/`](docs/brand/) are trademarks of the
-ArtCraft Team and are not covered by this license. They may be used only unmodified, and only as
-part of this repository and DeckCraft, under [`docs/brand/LICENSE-brand.txt`](docs/brand/LICENSE-brand.txt).
-Forks and modified versions must remove them.
+As DeckCraft's brand terms ask of modified versions, this edition carries none of the ArtCraft
+name, wordmark or logos; ArtCraft is a trademark of the ArtCraft Team, named here only to say whose
+DeckCraft this edition is based on. The Logicians Edition logo in [`docs/brand/`](docs/brand/) is
+original to this edition (DeckCraft's own app icon with a turnstile and a logician added) and is
+licensed like the code, under MIT OR Apache-2.0; `docs/brand/make_logo.py` draws it.
 
 <p align="center">
-  <a href="https://getartcraft.com/"><img alt="ArtCraft" src="docs/brand/artcraft-mark.svg" width="28"></a><br>
-  <sub>Made by the <a href="https://getartcraft.com/">ArtCraft</a> team and community.</sub>
+  <img alt="" src="docs/brand/logicians-mark.svg" width="40"><br>
+  <sub>DeckCraft Logicians Edition · based on DeckCraft by the ArtCraft team.</sub>
 </p>

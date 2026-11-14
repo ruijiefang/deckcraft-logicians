@@ -97,9 +97,11 @@ Ubuntu-Font-1.0, Bitstream-Vera); Creative Commons (CC0-1.0, CC-BY-4.0, CC-BY-SA
 domain; or contributor-original (created by a contributor who licenses it under
 `MIT OR Apache-2.0`).
 
-One narrow exception: the ArtCraft name, wordmark and logos in `docs/brand/` are trademarks of the
-ArtCraft Team (not open source, terms in `docs/brand/LICENSE-brand.txt`), used only unmodified to
-identify the project.
+This is the DeckCraft Logicians Edition, a modified version of DeckCraft, so it carries none of the
+ArtCraft name, wordmark or logos (DeckCraft's brand terms ask modified versions to remove them).
+Name DeckCraft and the ArtCraft team only in plain text ("based on DeckCraft by the ArtCraft
+team"). `docs/brand/` holds the edition's own logo, contributor-original (`MIT OR Apache-2.0`),
+drawn by `docs/brand/make_logo.py`.
 
 Forbidden: system fonts that are not openly licensed, vendor emoji artwork, stock photos, "free
 for personal use" material, screenshots of other people's software, anything whose licence you
