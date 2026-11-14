@@ -2,7 +2,7 @@
 
 **Stage: alpha** · next: beta, ~20 points and ~120–210 h away
 
-> **Last reviewed:** 2026-11-04 · **Last updated:** 2026-11-14 · **Change:** trivial (progress log: the Proof Tree builder; previous: trivial (progress log: LaTeX equations and proof trees; equations checklist row M → P; previous: trivial (slide-list entries with missing relationships are reported as lost slides and open as repaired copies; the Opus decoder and the Ogg, MP4 and Matroska demuxers come from craft-libs; parity scores unchanged))) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
+> **Last reviewed:** 2026-11-04 · **Last updated:** 2026-11-14 · **Change:** trivial (progress log: the README tutorial for LaTeX equations and proof trees; previous: trivial (progress log: the Proof Tree builder; previous: trivial (progress log: LaTeX equations and proof trees; equations checklist row M → P; previous: trivial (slide-list entries with missing relationships are reported as lost slides and open as repaired copies; the Opus decoder and the Ogg, MP4 and Matroska demuxers come from craft-libs; parity scores unchanged)))) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 > **Last reviewed:** 2026-11-02 · **Last updated:** 2026-11-03 · **Change:** trivial (progress log: web `?host=parent` bridge opens and saves through a same-origin framing page; scores unchanged) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 
 > **Last reviewed:** 2026-11-02 · **Last updated:** 2026-11-03 · **Change:** trivial (community PR wave 10: PPTX and native saves keep table cell centred anchoring, text overflow, compatible line spacing, normalised character height, Thai distributed alignment, RTL table direction, alternate run language and reflection transforms; imported effects placed by parent time-node delays; Reuse Slides fits the destination size and brings custom table styles; deleted slides leave custom shows; merged shapes drop their animations; Compress Pictures measures grouped pictures at displayed size; parity scores unchanged) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
@@ -154,6 +154,7 @@ app's JSON control channel (`deckcraft --control PORT`).
 
 | Date | What landed |
 |---|---|
+| 2026-11-14 | README: a tutorial for LaTeX equations and proof trees, with screenshots. Typeset formulas: a `¬`, digit or symbol after a space no longer takes the fallback font of the symbol before it; `\underset{x}{\min}` is spaced as an operator |
 | 2026-11-14 | Equations: Insert ▸ Equation while typing puts the equation in the text at the cursor; resizing LaTeX (by its handles, Shape Format ▸ Size or Size and Position) scales its text, set again to fill the box |
 | 2026-11-14 | Insert ▸ Proof Tree: a builder that edits ebproof proof trees on their picture (add, remove, move and drag steps; rule kinds and labels; templates; symbols; copy and paste; undo; the LaTeX pane) and inserts or updates them through `insert.latex` / `latex.set`; double-clicking a proof opens it there. The ebproof it writes compiles with ebproof 2.1.1 |
 | 2026-11-14 | Equations: Insert ▸ Equation takes LaTeX. `insert.equation` makes an Office Math equation; `insert.latex` typesets formulas (italic variables, TeX spacing, scripts), `array`/`tabular` with rules, `align`/`gather` and proof trees in ebproof, bussproofs, mathpartir and proof.sty syntax as text boxes and lines; `latex.get`/`latex.set` read and retypeset them. Symbols come from craft-math |
@@ -345,6 +346,7 @@ app's JSON control channel (`deckcraft --control PORT`).
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-14 | trivial | Progress log: the README tutorial for LaTeX equations and proof trees; parity scores unchanged |
 | 2026-11-14 | trivial | Progress log: the Proof Tree builder; parity scores unchanged |
 | 2026-11-14 | trivial | Progress log: LaTeX equations, arrays and proof trees; the equations checklist row moves M → P |
 | 2026-11-11 | trivial | Opus and container code moved to craft-libs crates; parity scores unchanged |

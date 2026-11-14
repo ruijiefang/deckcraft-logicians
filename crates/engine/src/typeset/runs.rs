@@ -186,7 +186,14 @@ impl Flat {
                 self.arg(e, look);
             }
             MNode::Lim { upper, e, lim } => {
-                self.arg(e, look);
+                // `\underset{x}{\min}` is one operator, spaced like `\min`.
+                if matches!(&e[..], [MNode::Run(r)] if r.sty == Some(MSty::Plain) && r.text.chars().count() > 1 && r.text.chars().all(char::is_alphabetic))
+                {
+                    let pieces = spaced(self.apart(e, look, self.script), self.script);
+                    self.atoms.push(Atom { pieces, cls: Cls::Op, attached: false });
+                } else {
+                    self.arg(e, look);
+                }
                 self.attach(lim, look, if *upper { SUP } else { SUB });
             }
             MNode::Acc { chr, e } => {
@@ -511,7 +518,10 @@ fn until(cs: &[char], i: &mut usize, end: impl Fn(&[char], usize) -> bool) -> St
     cs.get(start..stop).unwrap_or(&[]).iter().collect()
 }
 
-/// Adjacent pieces with the same look joined.
+/// Adjacent pieces with the same look joined, except after a space: the text layout keeps a
+/// space, digit or symbol in the face of the character before it within a run, so a `¬` or `2`
+/// after a space that followed `∨` or `≤` (both drawn by a fallback font) would come out in that
+/// fallback font. Starting a run there lets the next atom pick its own face.
 pub(crate) fn merge(pieces: Vec<Piece>) -> Vec<Piece> {
     let mut out: Vec<Piece> = Vec::with_capacity(pieces.len());
     for p in pieces {
@@ -519,7 +529,7 @@ pub(crate) fn merge(pieces: Vec<Piece>) -> Vec<Piece> {
             continue;
         }
         match out.last_mut() {
-            Some(last) if last.look == p.look => last.text.push_str(&p.text),
+            Some(last) if last.look == p.look && !last.text.ends_with(char::is_whitespace) => last.text.push_str(&p.text),
             _ => out.push(p),
         }
     }

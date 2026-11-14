@@ -1,3 +1,4 @@
+use craft_math::{MNode, MRun};
 use deckcraft_model::text::{Align, TextBody};
 
 use super::array::{self, GridKind};
@@ -79,6 +80,27 @@ fn variables_are_italic_and_the_rest_upright() {
     assert!(!piece(&p, "sin").look.italic);
     assert!(!piece(&p, "Γ").look.italic);
     assert!(!piece(&p, "1").look.italic);
+}
+
+#[test]
+fn an_atom_after_a_space_starts_its_own_run() {
+    // In one run `¬` and `2` would take the fallback face that drew `∨` and `≤` before them.
+    let p = runs::merge(runs::math_pieces(r"\neg A\vee\neg B\leq 2"));
+    let texts: Vec<&str> = p.iter().map(|x| x.text.as_str()).collect();
+    assert!(texts.contains(&"¬"), "{texts:?}");
+    assert!(texts.contains(&"2"), "{texts:?}");
+    assert!(p.iter().all(|x| !x.text.trim_end().contains(char::is_whitespace)), "{texts:?}");
+    assert_eq!(texts.concat(), format!("¬A{MED}∨{MED}¬B{THICK}≤{THICK}2"));
+}
+
+#[test]
+fn an_underset_operator_name_is_spaced_as_an_operator() {
+    // `\underset{x}{\min} f(x)`, as craft-math parses it (built here so the test doesn't depend
+    // on the craft-math version).
+    let tree =
+        [MNode::Lim { upper: false, e: vec![MNode::Run(MRun::plain("min"))], lim: vec![MNode::Run(MRun::new("x"))] }, MNode::Run(MRun::new("f(x)"))];
+    assert_eq!(runs::plain(&runs::tree_pieces(&tree, false)), format!("minₓ{THIN}f(x)"));
+    assert_eq!(plain(r"A \overset{\text{def}}{=} B"), format!("A{THICK}=^(def){THICK}B"));
 }
 
 #[test]

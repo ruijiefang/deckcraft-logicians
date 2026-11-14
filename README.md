@@ -58,6 +58,7 @@
 <p align="center">
   <a href="#what-works-today">What works</a> ·
   <a href="#getting-started">Getting started</a> ·
+  <a href="#tutorial-latex-equations-and-proof-trees">LaTeX and proof trees</a> ·
   <a href="#agents-cli-and-mcp">Agents, CLI and MCP</a> ·
   <a href="#roadmap">Roadmap</a> ·
   <a href="#downloads">Downloads</a> ·
@@ -81,6 +82,9 @@ Today it can:
   columns, autofit, vertical text, fields and hyperlinks.
 - **Add content**: pictures with crop and corrections, tables with styles, charts, SmartArt basics,
   audio and video (MP3, AAC, FLAC, ALAC, Ogg, Opus, WAV, AIFF; H.264, HEVC, VP9, AV1).
+- **Typeset math and logic**: LaTeX formulas, arrays and proof trees (ebproof, bussproofs,
+  mathpartir, proof.sty), equations inside a line of text, and a visual Proof Tree builder (see the
+  [tutorial](#tutorial-latex-equations-and-proof-trees)).
 - **Present**: transitions (including Morph), entrance/emphasis/exit and motion-path animations,
   by-paragraph builds, full-screen slide show, presenter view, pen, rehearse timings, media playback.
 - **Exchange files**: open and save .pptx presentations, export PDF (slides, notes pages, handouts
@@ -151,6 +155,247 @@ crashed survives the next start. The file stops growing at 16 MiB. `--version` w
 
 The logger is `apps/deckcraft/src/logging.rs`; the realtime audio callback does not log. The web
 app logs to the browser console instead.
+
+## Tutorial: LaTeX equations and proof trees
+
+DeckCraft sets LaTeX itself: formulas, arrays and tables, aligned derivations and proof trees
+become ordinary slide shapes (text boxes and rules in a group). They look the same in DeckCraft,
+in exported PDFs and in PowerPoint, and they keep their LaTeX, so you can open them again and
+change them. This tutorial walks through each part. Shortcuts are written with Ctrl; on macOS use ⌘.
+
+<p align="center">
+  <img alt="The Insert tab with Equation, Proof Tree and Symbol side by side" src="docs/images/latex-insert-tab.png" width="900"><br>
+  <sub>Everything starts on the Insert tab: <b>Equation</b> and <b>Proof Tree</b></sub>
+</p>
+
+### 1. Insert a formula
+
+1. Choose **Insert ▸ Equation**.
+2. Type LaTeX, with or without `$…$`, `\[…\]` or `\begin{equation}`. **Enter** starts a new line,
+   so long sources stay readable; **Ctrl+Enter** presses **Insert**.
+3. Pick how it is inserted:
+   - **Typeset by DeckCraft** (the default) sets it as shapes. Use this for logic, arrays and proofs.
+   - **Office equation** inserts a native equation that PowerPoint edits in its own equation editor.
+     DeckCraft draws its linear form (`(a+b)/2`), so prefer typeset when the slide is shown from
+     DeckCraft or exported to PDF.
+
+<p align="center">
+  <img alt="The Equation dialog with a first-order formula typed in, and the choice between typeset and Office equation" src="docs/images/latex-equation-dialog.png" width="360">
+</p>
+
+The new shape lands in the middle of the slide, in 24 pt Liberation Serif; drag it where you want
+it. The slide below was made this way (the captions are ordinary text boxes):
+
+<p align="center">
+  <img alt="A slide with a first-order formula, a truth table with rules, an aligned derivation, an Office equation and a sentence with an inline equation" src="docs/images/latex-formulas.png" width="900">
+</p>
+
+What you can write:
+
+| | Examples |
+|---|---|
+| Logic | `\forall \exists \neg \lnot \wedge \land \vee \lor \to \rightarrow \leftrightarrow \iff \implies \vdash \nvdash \vDash \models \Vdash \bot \top \Box \Diamond \equiv`, and any relation negated with `\not` (`\not\models` gives ⊭) |
+| Sets and order | `\in \notin \subseteq \subset \cup \cap \emptyset \setminus \leq \geq \neq \sqsubseteq \prec` |
+| Letters | Greek (`\alpha … \Omega`, `\varphi`), `\mathbb{N}`, `\mathcal{L}`, `\mathfrak{g}`, `\mathbf{v}`, `\mathsf{Set}`, `\mathrm{d}`, `\text{if and only if}` |
+| Structure | `x^2`, `x_i`, `\sum_{i=1}^{n}`, `\frac{a}{b}`, `\sqrt[3]{x}`, `\hat{x}`, `\bar{y}`, `\overset{\text{def}}{=}`, `\underset{x \in X}{\min}`, `\stackrel{?}{=}` |
+| Spacing | `\,` `\:` `\;` `\quad` `\qquad` `~`; operators, relations and quantifiers are spaced as TeX spaces them |
+| Grids | `array` (with `\|` column rules, `\hline`, `\cline{2-3}`, `\multicolumn`), `tabular`, `align`/`align*`/`aligned`/`alignat`/`split`/`eqnarray`, `gather`/`multline` |
+
+The truth table above is:
+
+```latex
+\begin{array}{cc|c|c}
+  p & q & p \wedge q & p \to q \\ \hline
+  T & T & T & T \\
+  T & F & F & F \\
+  F & T & F & T \\
+  F & F & F & T
+\end{array}
+```
+
+### 2. Put an equation inside a sentence
+
+While you are typing in a text box, **Insert ▸ Equation** puts the equation into the text at the
+cursor, in the text's size. The dialog says so ("Goes into the text at the cursor"). Text you type
+after it keeps the sentence's own font. The last line of the slide above, *Since Γ ⊬ ⊥, the theory
+is consistent*, was typed this way.
+
+<p align="center">
+  <img alt="A text box being typed in, with the Equation dialog open and the note that the equation goes into the text at the cursor" src="docs/images/latex-inline-dialog.png" width="700">
+</p>
+
+An inline equation is an Office equation, so PowerPoint can edit it too. A proof tree or an array
+can't sit in a line of text: those are inserted as their own shape. To change an inline equation
+later, select its text box (click its border), choose **Insert ▸ Equation** and keep **Change the
+selected one** ticked: the dialog opens on the box's first equation.
+
+### 3. Write proof trees in LaTeX
+
+Paste a proof tree into **Insert ▸ Equation** in any of four common syntaxes. DeckCraft draws
+the rules, labels and premises, and centres each conclusion under its premises.
+
+<p align="center">
+  <img alt="Four proof trees written in ebproof, bussproofs, mathpartir and proof.sty syntax" src="docs/images/latex-proof-syntaxes.png" width="900">
+</p>
+
+**ebproof**: `\hypo{…}` for a leaf, `\infer N[label]{conclusion}` for a rule with N premises
+(`\infer0` is an axiom, `\infer{10}` takes ten), and the `left label`, `right label`,
+`rule style=double|dashed|no rule` and `template` options. The older capitalised `\Hypo` and
+`\Infer` work too, and the `prooftree` environment is optional.
+
+```latex
+\begin{prooftree}
+  \hypo{\Gamma \vdash A}
+  \hypo{\Gamma \vdash B}
+  \infer2[$\wedge$I]{\Gamma \vdash A \wedge B}
+  \infer1[$\wedge$E$_1$]{\Gamma \vdash A}
+\end{prooftree}
+```
+
+**bussproofs**: `\AxiomC`, `\UnaryInfC` … `\QuinaryInfC` (and the short `\AXC`, `\UIC`, `\BIC`,
+`\TIC`), `\LeftLabel`, `\RightLabel`, `\noLine`, `\doubleLine`, `\dashedLine`, `\DisplayProof`.
+
+```latex
+\AxiomC{$[A]^1$}
+\noLine \UnaryInfC{$\vdots$}
+\noLine \UnaryInfC{$B$}
+\RightLabel{$\to$I$^1$}
+\UnaryInfC{$A \to B$}
+\DisplayProof
+```
+
+**mathpartir**: `\inferrule{premises separated by \\}{conclusion}` and
+`\inferrule*[right=…, left=…]{…}{…}`.
+
+```latex
+\inferrule*[right=App]{\Gamma \vdash e_1 : A \to B \\ \Gamma \vdash e_2 : A}{\Gamma \vdash e_1\,e_2 : B}
+```
+
+**proof.sty**: `\infer[label]{conclusion}{premise & premise}`, `\infer=` for a double rule and
+`\deduce` for a rule-less step.
+
+```latex
+\infer[\to E]{\Gamma \vdash B}{
+  \infer{\Gamma \vdash A \to B}{\Gamma, A \vdash B} &
+  \infer={\Gamma \vdash A}{\Gamma \vdash \neg\neg A}}
+```
+
+Several proofs in one source (for example two `prooftree` environments) are set side by side.
+
+### 4. Build a proof tree visually
+
+**Insert ▸ Proof Tree** opens the Proof Tree builder. You build the tree step by step and see it
+typeset as you go; the builder writes the ebproof LaTeX for you.
+
+<p align="center">
+  <img alt="The Proof Tree builder: toolbar, the typeset proof with one step selected and its + and × buttons, the Steps outline, and the selected step's statement, symbols, kind, rule and labels" src="docs/images/latex-proof-builder.png" width="900">
+</p>
+
+- **Canvas** (middle): click a step to select it, double-click to edit its statement, drag a step
+  onto another to move it (onto the left or right quarter to put it beside, elsewhere to make it a
+  premise). The selected step has buttons around it: **+** above adds a premise, **+** left and
+  right add one beside, **+** below adds a step under it, **×** removes it.
+- **Steps** (top right): the same tree as an outline; click to select.
+- **Selected step**: its **Statement** in LaTeX (math by default; tick **Set as text, not math**
+  for prose), a strip of common logic symbols to click in, its **Kind** (hypothesis, axiom or
+  inference), its **Rule** (single, double, dashed, no rule, or an ellipsis ⋮) and its **Right
+  label** and **Left label**. Labels are text: put math in `$…$`, as in `$\to$E`.
+- **Toolbar**: the same edits as buttons, plus **Undo**/**Redo**, **Copy**/**Cut**/**Paste** of
+  whole branches, **Templates**, zoom, and the **Size** and **Font** the proof is set in.
+- **Footer**: **Insert** (or **Update** when you opened an existing proof), **Insert as new** to
+  keep the original and add a copy, and **Cancel** (it asks before throwing changes away).
+
+**Try it**: modus ponens from the keyboard.
+
+1. **Insert ▸ Proof Tree**. The new proof starts in its conclusion's statement: type `B`.
+2. **Ctrl+↑** adds a premise and puts you in it. Type `A \to B`.
+3. **Tab** adds the next premise on the right. Type `A`.
+4. Click the conclusion **B** and type `$\to$E` into **Right label**.
+5. **Ctrl+Enter** inserts the proof on the slide.
+
+| Keys | Does |
+|---|---|
+| Ctrl+↑ / Ctrl+↓ | Add a premise above the selected step / a step below it |
+| Ctrl+← / Ctrl+→ | Add a premise beside it, on the left / right |
+| Tab (while typing a statement) | Add the next premise on the right |
+| ↑ ↓ ← → | Select the first premise, the step below, or the neighbour on either side |
+| Enter or F2 | Edit the selected step's statement |
+| Esc | In a statement: put it back as it was and leave the field. Elsewhere: close the builder |
+| Delete | Remove the step; its premises take its place |
+| Shift+Delete | Delete the step and everything above it |
+| Alt+← / Alt+→ | Swap the step with its neighbour |
+| Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y | Undo, redo (the builder keeps its own history) |
+| Ctrl+C / Ctrl+X / Ctrl+V | Copy, cut, paste a branch (pasted above the selected step) |
+| Ctrl+Enter | Insert or Update, and close |
+
+**Templates** insert a whole natural-deduction rule with placeholder statements: into an empty
+step, above the selected step, or as a new tree. There are the introduction and elimination rules
+for ∧, ∨, →, ¬, ∀ and ∃, ⊥ elimination, axiom, cut, weakening and a ⋮ derivation.
+
+<p align="center">
+  <img alt="The Templates menu of the Proof Tree builder listing natural-deduction rules" src="docs/images/latex-proof-templates.png" width="480">
+</p>
+
+The **LaTeX (ebproof)** pane under the canvas shows the source the builder writes. You can also
+edit it there and the tree follows; **Copy LaTeX** puts it on the clipboard for your paper, and
+**Edit as LaTeX…** moves to the Equation dialog. A proof first written in bussproofs, mathpartir or
+proof.sty is rewritten in ebproof when you update it from the builder (the builder tells you so,
+and says what it can't keep).
+
+<p align="center">
+  <img alt="The LaTeX (ebproof) pane of the Proof Tree builder with the generated prooftree source" src="docs/images/latex-proof-builder-latex.png" width="900">
+</p>
+
+### 5. Edit and resize
+
+- **Double-click** a typeset formula or array to reopen it in the Equation dialog, with **Change
+  the selected one** ticked so **Update** replaces it in place (untick it to insert a new copy).
+  Double-click a proof tree to open it in the Proof Tree builder; from the Equation dialog,
+  **Open in Proof Tree builder** does the same. Each change is one step of the deck's undo.
+- **Resize** a typeset shape with a corner handle. It keeps its proportions and is set again at the
+  new size, so the text and rules stay sharp rather than stretched, and the new size is kept for
+  the next edit.
+
+<p align="center">
+  <img alt="The same proof at 14 pt and, dragged larger, set again at about 49 pt" src="docs/images/latex-resize.png" width="900">
+</p>
+
+### 6. From scripts and agents
+
+The same features are commands, so `deckcraft-cli`, the control channel and MCP agents use them
+too:
+
+```sh
+deckcraft-cli run \
+  --cmd 'slide.new={"layout":"titleOnly","title":"Modus ponens"}' \
+  --cmd 'insert.latex={"latex":"\\hypo{A \\to B}\\hypo{A}\\infer2[$\\to$E]{B}","size":32,"rect":[80,160,0,0]}' \
+  --cmd 'latex.get' \
+  --print --save mp.deckcraft --export mp.png
+```
+
+| Command | Parameters | Does |
+|---|---|---|
+| `insert.latex` | `latex`, `rect?` (x and y place it), `size?` (24), `font?` (Liberation Serif; `""` for the theme's) | Typesets a formula, grid or proof; returns its `id` and `kind` |
+| `insert.equation` | `latex`, `rect?`, `size?` | Inserts an Office equation; while text is being edited, inline at the cursor |
+| `latex.get` | `id?` | The selected LaTeX shape's `latex`, `kind`, `size` and `font` |
+| `latex.set` | `latex`, `id?`, `size?`, `font?` | Sets a LaTeX shape again in place, or rewrites an equation |
+
+`deckcraft-cli describe insert.latex` prints the full parameter description.
+
+### Limitations
+
+- A formula is set on one line: `\frac{a}{b}` reads `a/b`, roots use √ and ∛, `\overset`,
+  `\underset` and `\stackrel` sit as superscripts and subscripts, and matrices are written
+  row by row. Stacked fractions, big delimiters and environments such as `cases` and `pmatrix`
+  are not laid out in two dimensions yet.
+- Office equations are drawn in their linear form inside DeckCraft. PowerPoint shows them in full.
+- amssymb's names (`\vDash`, `\Vdash`, `\nvdash`, `\Box`, `\Diamond`, `\land`, `\lor` and many
+  relations) and `\underset` over a function name (`\underset{x}{\min} f(x)`) need the craft-math
+  in DeckCraft's next craft-libs update. A build against an older craft-libs shows those names as
+  written.
+- Symbols Liberation Serif doesn't have (such as ⊢, ⊨, ∧) come from DeckCraft's fallback fonts.
+  Choose another font with the builder's **Font** field or the `font` parameter.
+- A source is limited to 20,000 characters, and a proof to 2,000 steps and 160 levels.
 
 ## Agents, CLI and MCP
 
