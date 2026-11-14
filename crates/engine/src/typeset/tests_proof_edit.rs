@@ -283,9 +283,9 @@ fn every_template_reads_back_the_same() {
     assert!(template("no such rule").is_none());
 }
 
-fn measure(b: &TextBody) -> (f64, f64) {
+fn measure(b: &TextBody) -> (f64, f64, f64) {
     let w = b.paragraphs.iter().map(|p| p.runs.iter().map(|r| r.text.chars().count()).sum::<usize>()).max().unwrap_or(0);
-    (w as f64 * 10.0, b.paragraphs.len().max(1) as f64 * 24.0)
+    (w as f64 * 10.0, b.paragraphs.len().max(1) as f64 * 24.0, 19.0)
 }
 
 #[test]
@@ -303,7 +303,7 @@ fn regions_name_every_step_where_it_is_drawn() {
             super::super::Item::Text { x, y, w, h, body } => {
                 (x - r.x).abs() < 1e-9 && (y - r.y).abs() < 1e-9 && (w - r.w).abs() < 1e-9 && (h - r.h).abs() < 1e-9 && !body.text().is_empty()
             }
-            super::super::Item::Line { .. } => false,
+            super::super::Item::Line { .. } | super::super::Item::Path { .. } => false,
         });
         assert!(drawn, "{path:?}: {r:?}");
         assert!(r.x >= -1e-9 && r.y >= -1e-9 && r.x + r.w <= t.w + 1e-9 && r.y + r.h <= t.h + 1e-9);

@@ -334,3 +334,83 @@ fn size_commands_scale_latex() {
     assert!((first - 10.0).abs() < 0.5, "{first}");
     assert_eq!(tag(&shape(&s, &id), SOURCE_TAG), Some(PROOF));
 }
+
+const DIAGRAM: &str = r#"\begin{tikzcd}
+	A \arrow[r, "f"] \arrow[d, hook, "g"'] & B \arrow[d, two heads, "h"] \\
+	C \arrow[r, dashed, "k"'] & D
+\end{tikzcd}"#;
+
+fn arrows(sh: &Shape) -> Vec<&Shape> {
+    sh.children().iter().filter(|c| matches!(c.geom, deckcraft_model::Geom::Custom { .. })).collect()
+}
+
+/// A tikz-cd diagram is a group: its objects and labels as text, its arrows as paths.
+#[test]
+fn a_diagram_is_a_group_of_text_and_arrow_paths() {
+    let mut s = session();
+    let v = s.execute("insert.latex", &json!({"latex": DIAGRAM, "size": 20})).unwrap();
+    assert_eq!(v["kind"], "diagram");
+    let g = shape(&s, &v["id"]);
+    assert!(g.is_group());
+    assert!(g.name.starts_with("Commutative Diagram"), "{}", g.name);
+    let texts: Vec<String> = g.children().iter().filter_map(|c| c.text.as_ref()).map(|t| t.text()).collect();
+    for want in ["A", "B", "C", "D", "f", "g", "h", "k"] {
+        assert!(texts.iter().any(|t| t == want), "{want} in {texts:?}");
+    }
+    // Four shafts and their tips (a hook, two heads, two arrowheads).
+    let paths = arrows(&g);
+    assert!(paths.len() >= 8, "{}", paths.len());
+    assert!(paths.iter().all(|p| p.xfrm.is_some_and(|x| x.w > 0.0 && x.h > 0.0)));
+    let dashed =
+        paths.iter().filter(|p| p.line.as_ref().is_some_and(|l| matches!(l.dash, Some(deckcraft_model::style::Dash::Custom { .. })))).count();
+    assert_eq!(dashed, 1);
+    assert!(g.descr.contains("f: A → B"), "{}", g.descr);
+    assert_eq!(tag(&g, SOURCE_TAG), Some(DIAGRAM));
+    assert_eq!(s.execute("latex.get", &json!({})).unwrap()["latex"], DIAGRAM);
+}
+
+/// Double-clicking a diagram asks for its editor; latex.set changes it in place.
+#[test]
+fn double_click_on_a_diagram_opens_its_editor() {
+    let mut s = session();
+    let id = s.execute("insert.latex", &json!({"latex": DIAGRAM, "rect": [100, 100, 0, 0]})).unwrap()["id"].clone();
+    let g = shape(&s, &id);
+    let (gx, gy) = (g.xfrm.unwrap().x, g.xfrm.unwrap().y);
+    let a = g.children().iter().find(|c| c.text.as_ref().is_some_and(|t| t.text() == "A")).cloned().unwrap();
+    let (cx, cy) = centre(&a);
+    let v = double_click(&mut s, (gx + cx, gy + cy));
+    assert_eq!(v["dialog"], "commutativeDiagram", "{v}");
+    let changed = DIAGRAM.replace("\"f\"", "\"f'\"");
+    s.execute("latex.set", &json!({"latex": changed})).unwrap();
+    let after = shape(&s, &id);
+    assert_eq!(tag(&after, SOURCE_TAG), Some(changed.as_str()));
+    assert!((after.xfrm.unwrap().x - gx).abs() < 1e-6 && (after.xfrm.unwrap().y - gy).abs() < 1e-6);
+}
+
+/// Resizing a diagram sets it again at the new size: the arrows stay sharp, the text grows.
+#[test]
+fn resizing_a_diagram_scales_it() {
+    let mut s = session();
+    let id = s.execute("insert.latex", &json!({"latex": DIAGRAM, "size": 20, "rect": [100, 100, 0, 0]})).unwrap()["id"].clone();
+    let before = shape(&s, &id);
+    let x = before.xfrm.unwrap();
+    drag(&mut s, (x.x + x.w, x.y + x.h), (x.x + 2.0 * x.w, x.y + 2.0 * x.h));
+    let after = shape(&s, &id);
+    let ratio = sizes(&after)[0] / sizes(&before)[0];
+    assert!((1.9..=2.3).contains(&ratio), "{ratio}");
+    let width = |sh: &Shape| arrows(sh).iter().filter_map(|p| p.line.as_ref().and_then(|l| l.width)).fold(0.0, f64::max);
+    assert!((width(&after) / width(&before) - ratio).abs() < 0.05, "lines thicken with the text");
+}
+
+#[test]
+fn a_diagram_survives_a_pptx_round_trip() {
+    let mut s = session();
+    s.execute("insert.latex", &json!({"latex": DIAGRAM})).unwrap();
+    let before = s.doc().unwrap().doc.slides[0].shapes.iter().find(|sh| sh.is_group()).cloned().unwrap();
+    let bytes = deckcraft_pptx::export(&s.doc().unwrap().doc).unwrap();
+    let back = deckcraft_pptx::import(&bytes).unwrap();
+    let g = back.slides[0].shapes.iter().find(|sh| sh.is_group()).expect("the diagram");
+    assert_eq!(tag(g, SOURCE_TAG), Some(DIAGRAM));
+    assert_eq!(arrows(g).len(), arrows(&before).len());
+    assert!(arrows(g).iter().all(|p| p.line.as_ref().is_some_and(|l| l.width.is_some())));
+}

@@ -1,5 +1,6 @@
 //! Placing measured statements: proof trees, grids and formulas, in points from the top left.
 
+use deckcraft_geom::{Affine, BezPath, KurboShape as _};
 use deckcraft_model::text::{Align, AutoFit, Paragraph, TextBody};
 
 use super::array::{Grid, GridKind};
@@ -29,8 +30,45 @@ const TREE_GAP: f64 = 2.5;
 /// A laid-out piece, in points from the typeset's top left.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Item {
-    Text { x: f64, y: f64, w: f64, h: f64, body: TextBody },
-    Line { x1: f64, y1: f64, x2: f64, y2: f64, dash: Option<&'static str> },
+    Text {
+        x: f64,
+        y: f64,
+        w: f64,
+        h: f64,
+        body: TextBody,
+    },
+    Line {
+        x1: f64,
+        y1: f64,
+        x2: f64,
+        y2: f64,
+        dash: Option<&'static str>,
+    },
+    /// A path (a diagram's arrow, its tips, a frame, a patch of background).
+    Path {
+        path: BezPath,
+        stroke: Option<Stroke>,
+        fill: Option<Paint>,
+    },
+}
+
+/// What a path is drawn in.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Paint {
+    /// The text colour.
+    Text,
+    /// The slide's background (behind a label on an arrow, the gap under a crossing arrow).
+    Background,
+    Rgb([u8; 3]),
+}
+
+/// How a path is stroked: width in points, dash and gap in widths, round ends.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Stroke {
+    pub width: f64,
+    pub paint: Paint,
+    pub dash: Option<(f64, f64)>,
+    pub round: bool,
 }
 
 /// Typeset LaTeX: its pieces, its size and the thickness its lines are drawn with, and for a
@@ -43,15 +81,23 @@ pub struct Typeset {
     pub items: Vec<Item>,
     pub thickness: f64,
     pub regions: Vec<Region>,
+    /// A diagram's rows and columns (what the diagram editor's grid follows).
+    pub grid: Option<super::cd::Grid>,
 }
 
-/// Which part of a proof step a region covers.
+/// Which part of a proof step, or of a diagram, a region covers.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Part {
     Statement,
     Rule,
     LeftLabel,
     RightLabel,
+    /// A diagram's object; `path` is its row and column.
+    Object,
+    /// A diagram's arrow; `path` is its index, `poly` points along it.
+    Arrow,
+    /// An arrow's label; `path` is the arrow's index and the label's.
+    ArrowLabel,
 }
 
 /// Where a part of a proof step is drawn, in points from the typeset's top left. `path` names
@@ -64,21 +110,27 @@ pub struct Region {
     pub y: f64,
     pub w: f64,
     pub h: f64,
+    /// Points along an arrow (empty for the other parts).
+    pub poly: Vec<(f64, f64)>,
 }
 
 fn region(part: Part, x: f64, y: f64, w: f64, h: f64) -> Region {
-    Region { path: Vec::new(), part, x, y, w, h }
+    Region { path: Vec::new(), part, x, y, w, h, poly: Vec::new() }
 }
 
-fn shift_regions(regions: &mut [Region], dx: f64, dy: f64) {
+pub(crate) fn shift_regions(regions: &mut [Region], dx: f64, dy: f64) {
     for r in regions {
         r.x += dx;
         r.y += dy;
+        for p in &mut r.poly {
+            p.0 += dx;
+            p.1 += dy;
+        }
     }
 }
 
 /// A text body that is exactly as big as its text: no insets, no wrapping, no autofit.
-fn body(paragraphs: Vec<Paragraph>) -> TextBody {
+pub(crate) fn body(paragraphs: Vec<Paragraph>) -> TextBody {
     let mut b = TextBody { paragraphs, ..Default::default() };
     b.body.inset_l = Some(0.0);
     b.body.inset_r = Some(0.0);
@@ -89,20 +141,22 @@ fn body(paragraphs: Vec<Paragraph>) -> TextBody {
     b
 }
 
-/// A measured text body.
-struct Boxed {
-    body: TextBody,
-    w: f64,
-    h: f64,
+/// A measured text body; `base` is its first baseline from its top.
+pub(crate) struct Boxed {
+    pub body: TextBody,
+    pub w: f64,
+    pub h: f64,
+    pub base: f64,
 }
 
-fn boxed(lines: Vec<Vec<Piece>>, style: &Style, measure: Measure, align: Align) -> Boxed {
+pub(crate) fn boxed(lines: Vec<Vec<Piece>>, style: &Style, measure: Measure, align: Align) -> Boxed {
     let b = body(lines.into_iter().map(|p| runs::paragraph(p, style, align)).collect());
-    let (w, h) = measure(&b);
-    Boxed { body: b, w: finite(w), h: finite(h) }
+    let (w, h, base) = measure(&b);
+    let h = finite(h);
+    Boxed { body: b, w: finite(w), h, base: finite(base).min(h) }
 }
 
-fn finite(v: f64) -> f64 {
+pub(crate) fn finite(v: f64) -> f64 {
     if v.is_finite() { v.max(0.0) } else { 0.0 }
 }
 
@@ -114,7 +168,7 @@ fn stmt_box(lines: &[Stmt], style: &Style, measure: Measure, align: Align) -> Bo
     boxed(lines.iter().map(pieces).collect(), style, measure, align)
 }
 
-fn text(x: f64, y: f64, b: Boxed) -> Item {
+pub(crate) fn text(x: f64, y: f64, b: Boxed) -> Item {
     Item::Text { x, y, w: b.w, h: b.h, body: b.body }
 }
 
@@ -123,7 +177,7 @@ fn hline(x1: f64, x2: f64, y: f64, dash: Option<&'static str>) -> Item {
 }
 
 /// The items' bounds: (min x, min y, max x, max y).
-fn bounds(items: &[Item]) -> (f64, f64, f64, f64) {
+pub(crate) fn bounds(items: &[Item]) -> (f64, f64, f64, f64) {
     let mut b = (f64::INFINITY, f64::INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY);
     let mut add = |x0: f64, y0: f64, x1: f64, y1: f64| {
         b = (b.0.min(x0.min(x1)), b.1.min(y0.min(y1)), b.2.max(x0.max(x1)), b.3.max(y0.max(y1)));
@@ -132,12 +186,19 @@ fn bounds(items: &[Item]) -> (f64, f64, f64, f64) {
         match it {
             Item::Text { x, y, w, h, .. } => add(*x, *y, x + w, y + h),
             Item::Line { x1, y1, x2, y2, .. } => add(*x1, *y1, *x2, *y2),
+            Item::Path { path, stroke, .. } => {
+                let r = path.bounding_box();
+                let w = stroke.as_ref().map_or(0.0, |s| s.width / 2.0);
+                if r.x0.is_finite() && r.y0.is_finite() && r.x1.is_finite() && r.y1.is_finite() {
+                    add(r.x0 - w, r.y0 - w, r.x1 + w, r.y1 + w);
+                }
+            }
         }
     }
     if b.0.is_finite() { b } else { (0.0, 0.0, 0.0, 0.0) }
 }
 
-fn shift(items: &mut [Item], dx: f64, dy: f64) {
+pub(crate) fn shift(items: &mut [Item], dx: f64, dy: f64) {
     for it in items {
         match it {
             Item::Text { x, y, .. } => {
@@ -150,11 +211,12 @@ fn shift(items: &mut [Item], dx: f64, dy: f64) {
                 *y1 += dy;
                 *y2 += dy;
             }
+            Item::Path { path, .. } => path.apply_affine(Affine::translate((dx, dy))),
         }
     }
 }
 
-fn thickness(style: &Style) -> f64 {
+pub(crate) fn thickness(style: &Style) -> f64 {
     (style.size * 0.04).max(0.75)
 }
 
@@ -194,7 +256,7 @@ fn finish(kind: Kind, mut items: Vec<Item>, mut regions: Vec<Region>, style: &St
     let (x0, y0, x1, y1) = bounds(&items);
     shift(&mut items, -x0, -y0);
     shift_regions(&mut regions, -x0, -y0);
-    Typeset { kind, w: x1 - x0, h: y1 - y0, items, thickness: thickness(style), regions }
+    Typeset { kind, w: x1 - x0, h: y1 - y0, items, thickness: thickness(style), regions, grid: None }
 }
 
 fn lay(p: &Proof, style: &Style, measure: Measure, depth: usize) -> Laid {
@@ -388,7 +450,7 @@ pub(crate) fn grid(g: &Grid, style: &Style, measure: Measure) -> Typeset {
     }
     items.extend(g.rules_below.iter().map(|&ab| rule(ab, total_h)));
     // Rules may sit on the edges: the typeset's box is the grid's.
-    Typeset { kind: Kind::Grid, w: total_w, h: total_h, items, thickness: thickness(style), regions: Vec::new() }
+    Typeset { kind: Kind::Grid, w: total_w, h: total_h, items, thickness: thickness(style), regions: Vec::new(), grid: None }
 }
 
 /// A formula on one line (or several, split at `\\`, centred).
@@ -396,5 +458,5 @@ pub(crate) fn formula(src: &str, style: &Style, measure: Measure) -> Typeset {
     let lines: Vec<Vec<Piece>> = split_top(src, &["\\\\"]).iter().filter(|l| !l.trim().is_empty()).map(|l| runs::math_pieces(l)).collect();
     let b = boxed(if lines.is_empty() { vec![Vec::new()] } else { lines }, style, measure, Align::Center);
     let (w, h) = (b.w, b.h);
-    Typeset { kind: Kind::Formula, w, h, items: vec![text(0.0, 0.0, b)], thickness: thickness(style), regions: Vec::new() }
+    Typeset { kind: Kind::Formula, w, h, items: vec![text(0.0, 0.0, b)], thickness: thickness(style), regions: Vec::new(), grid: None }
 }

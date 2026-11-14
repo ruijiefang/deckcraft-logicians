@@ -6,12 +6,13 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
 
+pub mod arrow;
 pub mod morph;
 pub mod preset;
 pub mod squircle;
 pub mod warp;
 
-pub use kurbo::{Affine, BezPath, PathEl, Point, Rect, Shape as KurboShape, Size, Vec2};
+pub use kurbo::{Affine, BezPath, CubicBez, PathEl, Point, Rect, Shape as KurboShape, Size, Vec2};
 use serde::{Deserialize, Serialize};
 
 /// EMU per point.

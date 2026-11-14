@@ -10,15 +10,15 @@
 //! keeps), so `latex.get` reads it back and `latex.set` typesets it again in place.
 
 use craft_math::{Math, math_latex, omml};
-use deckcraft_color::SchemeSlot;
-use deckcraft_geom::{Rect, Xfrm};
-use deckcraft_model::style::Dash;
+use deckcraft_color::{Rgba, SchemeSlot};
+use deckcraft_geom::{BezPath, KurboShape as _, PathEl, Rect, Xfrm};
+use deckcraft_model::style::{Dash, LineCap, LineJoin};
 use deckcraft_model::text::{Align, AutoFit, Paragraph, Run, RunKind, RunProps, TextBody};
-use deckcraft_model::{ColorRef, Fill, Geom, Line, Presentation, Shape, ShapeId, ShapeKind, ShapeStyle};
+use deckcraft_model::{ColorRef, CustomPath, Fill, Geom, Line, Presentation, Shape, ShapeId, ShapeKind, ShapeStyle};
 use serde_json::{Value, json};
 
 use super::{CommandSpec, NO_ID_SPACE, bad, cmd, current_shapes, f64_param, has_selection, has_slide, rect_param, shape_of, str_param, targets};
-use crate::typeset::{self, Item, Kind, Style, Typeset};
+use crate::typeset::{self, Item, Kind, Paint, Stroke, Style, Typeset};
 use crate::{Result, Session};
 
 /// The tag holding a LaTeX shape's source.
@@ -39,7 +39,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "LaTeX",
             ["Insert", "Symbols"],
             None,
-            "{latex: string (a formula; an array, tabular, align or gather environment; or proof trees in ebproof, bussproofs, mathpartir or proof.sty syntax), rect?: [x,y,w,h] (x and y place it; the size comes from the text), size?: pt (24), font?: family (Liberation Serif; \"\" for the theme's)} → {id, kind: formula|grid|proof}",
+            "{latex: string (a formula; an array, tabular, align or gather environment; proof trees in ebproof, bussproofs, mathpartir or proof.sty syntax; or a tikz-cd commutative diagram), rect?: [x,y,w,h] (x and y place it; the size comes from the text), size?: pt (24), font?: family (Liberation Serif; \"\" for the theme's)} → {id, kind: formula|grid|proof|diagram}",
             has_slide,
             insert_latex
         ),
@@ -116,7 +116,9 @@ fn typeset_on(st: &crate::DocState, src: &str, style: &Style) -> std::result::Re
     let rect = Rect::new(0.0, 0.0, 10_000.0, 10_000.0);
     let measure = |b: &TextBody| {
         let sh = Shape { text_box: true, text: Some(b.clone()), geom: Geom::preset("rect"), ..Default::default() };
-        (deckcraft_text::fit_width(&ctx, &sh, b, rect, &fields), deckcraft_text::fit_height(&ctx, &sh, b, rect, &fields))
+        let opts = deckcraft_text::Opts { rect, fields: &fields, prompt_color: None, no_shrink: true };
+        let base = deckcraft_text::layout(&ctx, &sh, b, &opts).lines.first().map_or(0.0, |l| l.baseline - rect.y0);
+        (deckcraft_text::fit_width(&ctx, &sh, b, rect, &fields), deckcraft_text::fit_height(&ctx, &sh, b, rect, &fields), base)
     };
     typeset::typeset(src, style, &measure)
 }
@@ -137,26 +139,104 @@ fn rule_shape(x1: f64, y1: f64, x2: f64, y2: f64, dash: Option<&str>, width: f64
     }
 }
 
+fn paint(p: Paint) -> ColorRef {
+    match p {
+        Paint::Text => ColorRef::scheme(SchemeSlot::Tx1),
+        Paint::Background => ColorRef::scheme(SchemeSlot::Bg1),
+        Paint::Rgb([r, g, b]) => ColorRef::rgb(Rgba::rgb(r, g, b)),
+    }
+}
+
+/// `path`'s drawing as custom geometry's path text, relative to (`x0`, `y0`).
+fn path_text(path: &BezPath, x0: f64, y0: f64) -> String {
+    use std::fmt::Write as _;
+    let mut d = String::new();
+    let pt = |d: &mut String, p: deckcraft_geom::Point| {
+        let _ = write!(d, " {:.3} {:.3}", p.x - x0, p.y - y0);
+    };
+    for el in path.elements() {
+        match *el {
+            PathEl::MoveTo(p) => {
+                d.push_str(" M");
+                pt(&mut d, p);
+            }
+            PathEl::LineTo(p) => {
+                d.push_str(" L");
+                pt(&mut d, p);
+            }
+            PathEl::QuadTo(a, p) => {
+                d.push_str(" Q");
+                pt(&mut d, a);
+                pt(&mut d, p);
+            }
+            PathEl::CurveTo(a, b, p) => {
+                d.push_str(" C");
+                pt(&mut d, a);
+                pt(&mut d, b);
+                pt(&mut d, p);
+            }
+            PathEl::ClosePath => d.push_str(" Z"),
+        }
+    }
+    d.trim().to_string()
+}
+
+/// A diagram's path as a shape of custom geometry: an arrow, its tips, a frame, or background.
+fn path_shape(path: BezPath, stroke: Option<Stroke>, fill: Option<Paint>) -> Option<Shape> {
+    let r = path.bounding_box();
+    if !(r.x0.is_finite() && r.y0.is_finite() && r.x1.is_finite() && r.y1.is_finite()) || path.elements().is_empty() {
+        return None;
+    }
+    // A straight arrow has no height (or width): its box keeps a hair of one.
+    let (w, h) = (r.width().max(0.01), r.height().max(0.01));
+    let d = path_text(&path, r.x0, r.y0);
+    let line = match &stroke {
+        Some(s) => Line {
+            fill: Some(Fill::solid(paint(s.paint))),
+            width: Some(s.width),
+            dash: s.dash.map(|(on, off)| Dash::Custom { pattern: vec![(on, off)] }),
+            cap: Some(if s.round { LineCap::Round } else { LineCap::Flat }),
+            join: Some(LineJoin::Round),
+            ..Default::default()
+        },
+        None => Line { fill: Some(Fill::None), ..Default::default() },
+    };
+    let fill_mode = if fill.is_some() { deckcraft_geom::preset::FillMode::Norm } else { deckcraft_geom::preset::FillMode::None };
+    Some(Shape {
+        name: if fill == Some(Paint::Background) { "Background".into() } else { "Arrow".into() },
+        xfrm: Some(Xfrm::new(r.x0, r.y0, w, h)),
+        geom: Geom::Custom { paths: vec![CustomPath { w, h, d, fill: fill_mode, stroke: stroke.is_some() }] },
+        fill: Some(fill.map_or(Fill::None, |p| Fill::solid(paint(p)))),
+        line: Some(line),
+        ..Default::default()
+    })
+}
+
 /// The typeset as shapes: a text box for a formula, else a group of text boxes and lines.
 fn build(t: Typeset, at: (f64, f64), src: &str, style: &Style) -> Shape {
     let thickness = t.thickness;
     let mut kids: Vec<Shape> = t
         .items
         .into_iter()
-        .map(|it| match it {
-            Item::Text { x, y, w, h, body } => Shape {
+        .filter_map(|it| match it {
+            Item::Text { x, y, w, h, body } => Some(Shape {
                 name: "Text".into(),
                 xfrm: Some(Xfrm::new(x, y, w, h)),
                 text_box: true,
                 geom: Geom::preset("rect"),
                 text: Some(body),
                 ..Default::default()
-            },
-            Item::Line { x1, y1, x2, y2, dash } => rule_shape(x1, y1, x2, y2, dash, thickness),
+            }),
+            Item::Line { x1, y1, x2, y2, dash } => Some(rule_shape(x1, y1, x2, y2, dash, thickness)),
+            Item::Path { path, stroke, fill } => path_shape(path, stroke, fill),
         })
         .collect();
     let tags = vec![(SOURCE_TAG.to_string(), src.to_string()), (STYLE_TAG.to_string(), style_tag(style))];
-    let descr = src.chars().take(1_000).collect::<String>();
+    let descr = if t.kind == Kind::Diagram {
+        typeset::cd::open(src).map(|o| typeset::cd::describe(&o.diagram)).unwrap_or_default().chars().take(1_000).collect()
+    } else {
+        src.chars().take(1_000).collect::<String>()
+    };
     if t.kind == Kind::Formula
         && kids.len() == 1
         && let Some(mut sh) = kids.pop()
@@ -206,15 +286,61 @@ pub fn preview(st: &crate::DocState, src: &str, size: f64, font: Option<&str>) -
     Ok(Preview { shape, regions, w, h })
 }
 
+/// A diagram laid out for the Commutative Diagram editor: with `ring` empty rows and columns
+/// around it, its grid and where its objects, arrows and labels are.
+#[derive(Clone, Debug)]
+pub struct DiagramPreview {
+    pub preview: Preview,
+    pub grid: typeset::cd::Grid,
+}
+
+pub fn preview_diagram(
+    st: &crate::DocState,
+    d: &typeset::cd::Diagram,
+    size: f64,
+    font: Option<&str>,
+    ring: usize,
+) -> std::result::Result<DiagramPreview, String> {
+    let style = Style { font: Some(font.unwrap_or(DEFAULT_FONT).to_string()).filter(|f| !f.is_empty()), size };
+    if !(size.is_finite() && (1.0..=400.0).contains(&size)) {
+        return Err("size must be between 1 and 400 pt".into());
+    }
+    let ctx = super::text::ctx_for(&st.doc, &st.selection).ok_or("no slide")?;
+    let fields = deckcraft_text::NoFields;
+    let rect = Rect::new(0.0, 0.0, 10_000.0, 10_000.0);
+    let measure = |b: &TextBody| {
+        let sh = Shape { text_box: true, text: Some(b.clone()), geom: Geom::preset("rect"), ..Default::default() };
+        let opts = deckcraft_text::Opts { rect, fields: &fields, prompt_color: None, no_shrink: true };
+        let base = deckcraft_text::layout(&ctx, &sh, b, &opts).lines.first().map_or(0.0, |l| l.baseline - rect.y0);
+        (deckcraft_text::fit_width(&ctx, &sh, b, rect, &fields), deckcraft_text::fit_height(&ctx, &sh, b, rect, &fields), base)
+    };
+    let t = typeset::cd::layout(d, &style, &measure, ring);
+    let grid = t.grid.clone().unwrap_or_default();
+    let (w, h, regions) = (t.w, t.h, t.regions.clone());
+    let src = typeset::cd::write(d);
+    let mut shape = build(t, (0.0, 0.0), &src, &style);
+    shape.id = ShapeId(9_999);
+    if let ShapeKind::Group { children, .. } = &mut shape.kind {
+        for (k, c) in children.iter_mut().enumerate() {
+            c.id = ShapeId(10_000 + k as u32);
+        }
+    }
+    Ok(DiagramPreview { preview: Preview { shape, regions, w, h }, grid })
+}
+
 /// The size and font a LaTeX shape was typeset in, from its style tag.
 fn style_of(sh: &Shape) -> Option<Style> {
     tag(sh, STYLE_TAG).and_then(parse_style_tag)
 }
 
-/// Which dialog edits the LaTeX shape `id`: the Proof Tree builder for a proof it can open as a
-/// tree, else the Equation dialog.
+/// Which dialog edits the LaTeX shape `id`: the Commutative Diagram editor for a diagram, the
+/// Proof Tree builder for a proof it can open as a tree, else the Equation dialog.
 pub(crate) fn dialog_for(st: &crate::DocState, id: ShapeId) -> &'static str {
-    let proof = st.shape(id).and_then(|sh| tag(sh, SOURCE_TAG)).is_some_and(|src| typeset::is_proof(src) && typeset::proof_edit::open(src).is_ok());
+    let src = st.shape(id).and_then(|sh| tag(sh, SOURCE_TAG));
+    if src.is_some_and(|s| typeset::cd::is_diagram(s) && typeset::cd::open(s).is_ok()) {
+        return "commutativeDiagram";
+    }
+    let proof = src.is_some_and(|src| typeset::is_proof(src) && typeset::proof_edit::open(src).is_ok());
     if proof { "proofTree" } else { "equation" }
 }
 
@@ -223,6 +349,7 @@ fn base_name(kind: Kind) -> &'static str {
         Kind::Formula => "LaTeX",
         Kind::Grid => "LaTeX Array",
         Kind::Proof => "Proof Tree",
+        Kind::Diagram => "Commutative Diagram",
     }
 }
 

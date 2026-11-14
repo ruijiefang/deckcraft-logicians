@@ -6,13 +6,15 @@
 //! - **grids**: `array` and `tabular` with their `|` and `\hline` rules (truth tables), `align`
 //!   and `gather` ([`array`]);
 //! - **formulas** on one line: italic variables, upright operators and names, TeX's spacing
-//!   between atoms, raised and lowered scripts ([`runs`]).
+//!   between atoms, raised and lowered scripts ([`runs`]);
+//! - **commutative diagrams** in tikz-cd's syntax, arrows drawn as paths ([`cd`]).
 //!
 //! Math is read by craft-math, so every named symbol it knows (`\forall`, `\vDash`, `\multimap`…)
 //! is available. Office Math equations ([`crate::cmd::latex`]'s `insert.equation`) keep the
 //! equation's structure for PowerPoint instead.
 
 mod array;
+pub mod cd;
 mod layout;
 mod proof;
 pub mod proof_edit;
@@ -22,7 +24,7 @@ mod scan;
 mod tests;
 
 pub use array::{Grid, GridKind};
-pub use layout::{Item, Part, Region, Typeset};
+pub use layout::{Item, Paint, Part, Region, Stroke, Typeset};
 pub use proof::{Proof, Rule, Stmt, is_proof};
 
 use deckcraft_model::text::TextBody;
@@ -36,6 +38,7 @@ pub enum Kind {
     Formula,
     Grid,
     Proof,
+    Diagram,
 }
 
 impl Kind {
@@ -44,6 +47,7 @@ impl Kind {
             Kind::Formula => "formula",
             Kind::Grid => "grid",
             Kind::Proof => "proof",
+            Kind::Diagram => "diagram",
         }
     }
 }
@@ -56,13 +60,16 @@ pub struct Style {
     pub size: f64,
 }
 
-/// Measures a text body: its width and height in points.
-pub type Measure<'a> = &'a dyn Fn(&TextBody) -> (f64, f64);
+/// Measures a text body: its width and height, and its first line's baseline from its top, in
+/// points.
+pub type Measure<'a> = &'a dyn Fn(&TextBody) -> (f64, f64, f64);
 
 /// What `src` would be typeset as, without typesetting it.
 pub fn kind_of(src: &str) -> Kind {
     let src = src.trim();
-    if is_proof(src) {
+    if cd::is_diagram(src) {
+        Kind::Diagram
+    } else if is_proof(src) {
         Kind::Proof
     } else if array::parse(src).is_some() {
         Kind::Grid
@@ -82,6 +89,10 @@ pub fn typeset(src: &str, style: &Style, measure: Measure) -> Result<Typeset, St
     }
     if !(style.size.is_finite() && (1.0..=400.0).contains(&style.size)) {
         return Err("size must be between 1 and 400 pt".into());
+    }
+    if cd::is_diagram(src) {
+        let d = cd::open(src)?.diagram;
+        return Ok(cd::layout(&d, style, measure, 0));
     }
     if is_proof(src) {
         let trees = proof::parse(src)?;

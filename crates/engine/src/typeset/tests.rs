@@ -15,10 +15,10 @@ fn style() -> Style {
 }
 
 /// Half an em per character, 1.2 em per line: enough to check where things go.
-fn measure(b: &TextBody) -> (f64, f64) {
+fn measure(b: &TextBody) -> (f64, f64, f64) {
     let size = b.paragraphs.iter().flat_map(|p| &p.runs).find_map(|r| r.props.size).unwrap_or(20.0);
     let w = b.paragraphs.iter().map(|p| p.runs.iter().map(|r| r.text.chars().count()).sum::<usize>()).max().unwrap_or(0);
-    (w as f64 * size * 0.5, b.paragraphs.len().max(1) as f64 * size * 1.2)
+    (w as f64 * size * 0.5, b.paragraphs.len().max(1) as f64 * size * 1.2, size * 0.95)
 }
 
 fn set(src: &str) -> Typeset {
@@ -34,7 +34,7 @@ fn texts(t: &Typeset) -> Vec<(f64, f64, f64, f64, String)> {
         .iter()
         .filter_map(|i| match i {
             Item::Text { x, y, w, h, body } => Some((*x, *y, *w, *h, body.text())),
-            Item::Line { .. } => None,
+            Item::Line { .. } | Item::Path { .. } => None,
         })
         .collect()
 }
@@ -44,7 +44,7 @@ fn lines(t: &Typeset) -> Vec<(f64, f64, f64, f64, Option<&'static str>)> {
         .iter()
         .filter_map(|i| match i {
             Item::Line { x1, y1, x2, y2, dash } => Some((*x1, *y1, *x2, *y2, *dash)),
-            Item::Text { .. } => None,
+            Item::Text { .. } | Item::Path { .. } => None,
         })
         .collect()
 }
