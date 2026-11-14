@@ -210,7 +210,8 @@ fn move_by(s: &mut Session, p: &Value) -> Result<Value> {
 fn resize(s: &mut Session, p: &Value) -> Result<Value> {
     let (w, h) = (f64_param(p, "w").map(|v| v.max(0.0)), f64_param(p, "h").map(|v| v.max(0.0)));
     let lock = bool_or(p, "lockAspect", false);
-    edit_geometry(s, p, "shape.resize", |sh| {
+    let latex = super::latex::latex_boxes(s, p)?;
+    let out = edit_geometry(s, p, "shape.resize", |sh| {
         if let Some(x) = sh.xfrm.as_mut() {
             let ar = if x.h > 0.0 { x.w / x.h } else { 1.0 };
             let (cx, cy) = (x.x + x.w / 2.0, x.y + x.h / 2.0);
@@ -237,7 +238,9 @@ fn resize(s: &mut Session, p: &Value) -> Result<Value> {
             }
         }
         Ok(())
-    })
+    })?;
+    // LaTeX scales: its text is set again to fill the new size.
+    super::latex::rescaled_after(s, latex, out)
 }
 
 fn set_bounds(s: &mut Session, p: &Value) -> Result<Value> {

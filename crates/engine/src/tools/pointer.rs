@@ -568,19 +568,21 @@ impl Session {
                 }
             }
             Some(Drag::Resize { origs, .. }) => {
-                let changed: Vec<ShapeId> = origs
+                let changed: Vec<(ShapeId, Xfrm)> = origs
                     .iter()
                     .filter_map(|(id, orig)| {
                         let current = self.active().and_then(|st| st.shape(*id).map(|s| xfrm_of(&st.doc, &st.selection, s)))?;
 
-                        (current != *orig).then_some(*id)
+                        (current != *orig).then_some((*id, *orig))
                     })
                     .collect();
-                if !changed.is_empty() {
-                    for id in changed {
-                        let _ = cmd::text::fit_text_box(self, id);
-                        self.refit_after_resize(id)?;
+                for (id, orig) in changed {
+                    // LaTeX scales: its text is set again to fill the new box.
+                    if cmd::latex::rescale_after_resize(self, id, orig)? {
+                        continue;
                     }
+                    let _ = cmd::text::fit_text_box(self, id);
+                    self.refit_after_resize(id)?;
                 }
                 self.commit();
             }
@@ -599,5 +601,10 @@ impl Session {
 
     pub(super) fn is_picture(&self, id: ShapeId) -> bool {
         self.active().and_then(|d| d.shape(id)).is_some_and(|s| matches!(s.kind, ShapeKind::Picture { .. } | ShapeKind::Media(_)))
+    }
+
+    /// A shape typeset from LaTeX, or an equation box: it scales like a picture when resized.
+    pub(super) fn is_latex(&self, id: ShapeId) -> bool {
+        self.active().is_some_and(|d| cmd::latex::latex_target(d, id) == Some(id))
     }
 }

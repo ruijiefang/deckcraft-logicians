@@ -35,7 +35,7 @@ impl Session {
                 return self.drag_move(MoveDrag { ids, start, origs, moved, duplicate, enter_text }, p, mods, tol);
             }
             Drag::Resize { id, orig, ids, handle, origs, start } => {
-                let keep_aspect = mods.shift || self.is_picture(id);
+                let keep_aspect = mods.shift || self.is_picture(id) || self.is_latex(id);
                 let nx = resize_box(&orig, handle, p - start, keep_aspect, mods.alt);
                 let nx = self.snap_resize(nx, handle, &ids, tol);
                 let sx = if orig.w > 1e-9 { (nx.w / orig.w) * if nx.flip_h != orig.flip_h { -1.0 } else { 1.0 } - 1.0 } else { 0.0 };
@@ -55,7 +55,7 @@ impl Session {
                     let target_nx = if *tid == id {
                         nx
                     } else {
-                        let picture = self.is_picture(*tid);
+                        let picture = self.is_picture(*tid) || self.is_latex(*tid);
                         let (sx, sy) = if picture && matches!(handle, 0 | 2 | 4 | 6) {
                             // Use the axis with the larger relative change so an unchanged
                             // dimension cannot cancel shrinking. Preserve each axis's flip.

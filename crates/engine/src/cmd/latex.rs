@@ -48,7 +48,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Equation",
             ["Insert", "Symbols"],
             None,
-            "{latex: string, rect?: [x,y,w,h], size?: pt (24)} → {id} (an Office Math equation PowerPoint edits as an equation; DeckCraft draws its linear form)",
+            "{latex: string, rect?: [x,y,w,h], size?: pt (24)} → {id} | {inline: true} (an Office Math equation PowerPoint edits as an equation; DeckCraft draws its linear form. While text is being edited it goes in at the caret, in the text's size unless size is given)",
             has_slide,
             insert_equation
         ),
@@ -324,7 +324,15 @@ fn insert_equation(s: &mut Session, p: &Value) -> Result<Value> {
     if src.trim().is_empty() {
         return Err(bad(CMD, "the LaTeX is empty"));
     }
-    let size = f64_param(p, "size").filter(|v| v.is_finite() && (1.0..=400.0).contains(v)).unwrap_or(DEFAULT_SIZE);
+    let size_param = f64_param(p, "size").filter(|v| v.is_finite() && (1.0..=400.0).contains(v));
+    // While text is being edited, the equation goes in the text at the caret.
+    if s.doc()?.selection.text.as_ref().is_some_and(|t| !t.notes) {
+        let mut run = equation_run(src, size_param.unwrap_or(DEFAULT_SIZE));
+        run.props.size = size_param;
+        super::text::insert_math(s, run)?;
+        return Ok(json!({"inline": true}));
+    }
+    let size = size_param.unwrap_or(DEFAULT_SIZE);
     let mut para = Paragraph { runs: vec![equation_run(src, size)], ..Default::default() };
     para.props.align = Some(Align::Center);
     let mut body = TextBody { paragraphs: vec![para], ..Default::default() };
@@ -342,6 +350,96 @@ fn insert_equation(s: &mut Session, p: &Value) -> Result<Value> {
     let id = super::insert::add_shape(s, CMD, shape, true)?;
     super::text::fit_text_box(s, id)?;
     Ok(json!({"id": id}))
+}
+
+/// After a LaTeX shape's box was resized by hand (it was `orig`), its text is set again to fill
+/// the new box: a typeset shape typeset at its size times the scale, an equation with its runs'
+/// sizes scaled and its box fitted. The scale is the axis that changed more (the box keeps its
+/// aspect while dragged). The document changes in place, inside the resize's undo step.
+/// `false` when `id` isn't a LaTeX shape (it is fitted as ordinary text instead).
+pub(crate) fn rescale_after_resize(s: &mut Session, id: ShapeId, orig: Xfrm) -> Result<bool> {
+    const CMD: &str = "resize";
+    let st = s.doc()?;
+    if latex_target(st, id) != Some(id) {
+        return Ok(false);
+    }
+    let Some(sh) = st.shape(id).cloned() else { return Ok(false) };
+    let now = super::xfrm_of(&st.doc, &st.selection, &sh);
+    let ratio = |a: f64, b: f64| if b > 1e-9 { a / b } else { 1.0 };
+    let (rw, rh) = (ratio(now.w, orig.w), ratio(now.h, orig.h));
+    let scale = if (rw - 1.0).abs() >= (rh - 1.0).abs() { rw } else { rh };
+    if !(scale.is_finite() && scale > 0.0) || (scale - 1.0).abs() < 1e-3 {
+        return Ok(true);
+    }
+    let scaled = |size: f64| ((size * scale * 10.0).round() / 10.0).clamp(1.0, 400.0);
+    if math_run(&sh).is_some() {
+        // An equation: its text grows or shrinks, and the box fits it again.
+        let mut new = sh.clone();
+        if let Some(t) = new.text.as_mut() {
+            for p in &mut t.paragraphs {
+                for r in &mut p.runs {
+                    r.props.size = Some(scaled(r.props.size.unwrap_or(18.0)));
+                }
+                p.end_props.size = p.end_props.size.map(scaled);
+            }
+        }
+        replace_in_place(s, id, new)?;
+        super::text::fit_text_box(s, id)?;
+        return Ok(true);
+    }
+    let Some(src) = tag(&sh, SOURCE_TAG).map(str::to_string) else { return Ok(false) };
+    let mut style = style_of(&sh).unwrap_or(Style { font: Some(DEFAULT_FONT.into()), size: DEFAULT_SIZE });
+    style.size = scaled(style.size);
+    let t = typeset_here(s, &src, &style).map_err(|e| bad(CMD, e))?;
+    let mut new = build(t, (now.x, now.y), &src, &style);
+    if let Some(x) = new.xfrm.as_mut() {
+        x.rot = now.rot;
+        x.flip_h = now.flip_h;
+        x.flip_v = now.flip_v;
+    }
+    new.id = id;
+    new.name = sh.name.clone();
+    replace_in_place(s, id, new)?;
+    Ok(true)
+}
+
+/// The LaTeX shapes a size command will change (its `ids`, else the selection) and their boxes
+/// now, for [`rescaled_after`].
+pub(crate) fn latex_boxes(s: &Session, p: &Value) -> Result<Vec<(ShapeId, Xfrm)>> {
+    let ids = targets(s, p)?;
+    let st = s.doc()?;
+    Ok(ids
+        .into_iter()
+        .filter(|id| latex_target(st, *id) == Some(*id))
+        .filter_map(|id| st.shape(id).map(|sh| (id, super::xfrm_of(&st.doc, &st.selection, sh))))
+        .collect())
+}
+
+/// After a size command: the LaTeX shapes in `before` set again to fill their new boxes.
+pub(crate) fn rescaled_after(s: &mut Session, before: Vec<(ShapeId, Xfrm)>, out: Value) -> Result<Value> {
+    for (id, orig) in before {
+        rescale_after_resize(s, id, orig)?;
+    }
+    Ok(out)
+}
+
+/// Puts `new` in place of shape `id` without an undo step of its own (the gesture it belongs
+/// to has one), giving a group's members fresh ids.
+fn replace_in_place(s: &mut Session, id: ShapeId, mut new: Shape) -> Result<()> {
+    let st = s.doc_mut()?;
+    let mut d = (*st.doc).clone();
+    if let ShapeKind::Group { children, .. } = &mut new.kind {
+        for c in children {
+            c.id = ShapeId(d.alloc_id().ok_or_else(|| bad("resize", NO_ID_SPACE))?);
+        }
+    }
+    let list = crate::shapes_mut(&mut d, &st.selection).ok_or_else(|| bad("resize", "no slide"))?;
+    if let Some(target) = deckcraft_model::find_shape_mut(list, id) {
+        *target = new;
+    }
+    st.doc = std::sync::Arc::new(d);
+    st.revision += 1;
+    Ok(())
 }
 
 /// The first equation run of a shape: its OMML and size.

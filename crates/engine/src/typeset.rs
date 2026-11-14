@@ -59,6 +59,18 @@ pub struct Style {
 /// Measures a text body: its width and height in points.
 pub type Measure<'a> = &'a dyn Fn(&TextBody) -> (f64, f64);
 
+/// What `src` would be typeset as, without typesetting it.
+pub fn kind_of(src: &str) -> Kind {
+    let src = src.trim();
+    if is_proof(src) {
+        Kind::Proof
+    } else if array::parse(src).is_some() {
+        Kind::Grid
+    } else {
+        Kind::Formula
+    }
+}
+
 /// Typesets `src`.
 pub fn typeset(src: &str, style: &Style, measure: Measure) -> Result<Typeset, String> {
     let src = src.trim();

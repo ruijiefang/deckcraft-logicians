@@ -160,12 +160,15 @@ pub(super) fn size_position(s: &mut Session, p: &Value) -> Result<Value> {
     if !changed {
         return Ok(Value::Null);
     }
-    edit_geometry(s, p, SIZE_POS, |sh| {
+    let latex = crate::cmd::latex::latex_boxes(s, p)?;
+    let out = edit_geometry(s, p, SIZE_POS, |sh| {
         if let Some(x) = sh.xfrm.as_mut() {
             apply_size(x, spec);
         }
         Ok(())
-    })
+    })?;
+    // LaTeX scales: its text is set again to fill the new size.
+    crate::cmd::latex::rescaled_after(s, latex, out)
 }
 
 pub(super) fn rotate(s: &mut Session, p: &Value) -> Result<Value> {

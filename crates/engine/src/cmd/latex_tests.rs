@@ -238,3 +238,98 @@ fn double_click_on_latex_opens_the_equation_dialog() {
     assert!(!asks_for_the_equation_dialog(&s));
     assert!(s.doc().unwrap().selection.text.is_some());
 }
+
+/// While text is being edited, Insert ▸ Equation puts the equation in the text at the caret.
+#[test]
+fn an_equation_goes_inline_while_typing() {
+    let mut s = session();
+    let before = count(&s);
+    s.execute("insert.textBox", &json!({"rect": [40, 40, 300, 40]})).unwrap();
+    s.execute("text.insert", &json!({"text": "so "})).unwrap();
+    let v = s.execute("insert.equation", &json!({"latex": r"\Gamma \vdash A"})).unwrap();
+    assert_eq!(v["inline"], true);
+    s.execute("text.insert", &json!({"text": " holds"})).unwrap();
+    assert_eq!(count(&s), before + 1, "the text box only, no equation box");
+    let st = s.doc().unwrap();
+    let id = st.selection.text.as_ref().unwrap().shape;
+    let runs = st.shape(id).unwrap().text.as_ref().unwrap().paragraphs[0].runs.clone();
+    let kinds: Vec<(String, bool)> = runs.iter().map(|r| (r.text.clone(), matches!(r.kind, RunKind::Math { .. }))).collect();
+    assert_eq!(kinds.len(), 3, "{kinds:?}");
+    assert_eq!((kinds[0].0.as_str(), kinds[1].1, kinds[2].0.as_str()), ("so ", true, " holds"));
+    assert!(kinds[1].0.contains('⊢'));
+    assert_eq!(runs[1].props.font.as_deref(), Some("Cambria Math"));
+    assert_eq!(runs[1].props.size, None, "the text's own size");
+    // It's still an equation the dialog can read.
+    assert_eq!(s.execute("latex.get", &json!({"id": id.0})).unwrap()["kind"], "equation");
+}
+
+fn drag(s: &mut Session, from: (f64, f64), to: (f64, f64)) {
+    use crate::{Mods, PointerEvent, PointerKind};
+    let mid = ((from.0 + to.0) / 2.0, (from.1 + to.1) / 2.0);
+    for (kind, (x, y)) in [(PointerKind::Down, from), (PointerKind::Drag, mid), (PointerKind::Drag, to), (PointerKind::Up, to)] {
+        s.pointer(PointerEvent { kind, x, y, mods: Mods::default(), tol: 3.0, pressure: None }).unwrap();
+    }
+}
+
+fn sizes(sh: &Shape) -> Vec<f64> {
+    let mut out = Vec::new();
+    for c in std::iter::once(sh).chain(sh.children()) {
+        for r in c.text.iter().flat_map(|t| &t.paragraphs).flat_map(|p| &p.runs) {
+            out.push(r.props.size.unwrap_or(0.0));
+        }
+    }
+    out
+}
+
+/// Resizing a LaTeX shape by its corner scales its text: it is typeset again to fill the box.
+#[test]
+fn resizing_latex_scales_its_text() {
+    for (cmd, latex) in [("insert.latex", r"\forall x\, P(x)"), ("insert.latex", PROOF), ("insert.equation", r"a \vdash b")] {
+        let mut s = session();
+        let id = s.execute(cmd, &json!({"latex": latex, "size": 20, "rect": [100, 100, 0, 0]})).unwrap()["id"].clone();
+        let before = shape(&s, &id);
+        let x = before.xfrm.unwrap();
+        assert!(sizes(&before).first().is_some_and(|v| (*v - 20.0).abs() < 1e-9), "{cmd} {latex}: {:?}", sizes(&before));
+        drag(&mut s, (x.x + x.w, x.y + x.h), (x.x + 2.0 * x.w, x.y + 2.0 * x.h));
+        let after = shape(&s, &id);
+        let y = after.xfrm.unwrap();
+        // About twice the size (the dragged box snaps to whole points), by one factor for every
+        // run (a proof's labels stay smaller than its statements).
+        let grown = sizes(&after);
+        let ratios: Vec<f64> = grown.iter().zip(sizes(&before)).map(|(a, b)| a / b).collect();
+        assert!(
+            ratios.len() == sizes(&before).len() && ratios.iter().all(|r| (1.9..=2.3).contains(r) && (r - ratios[0]).abs() < 0.02),
+            "{cmd} {latex}: {grown:?}"
+        );
+        assert!((y.w / x.w - 2.0).abs() < 0.25 && (y.h / x.h - 2.0).abs() < 0.25, "{cmd} {latex}: {x:?} -> {y:?}");
+        assert!((y.x - x.x).abs() < 1e-6 && (y.y - x.y).abs() < 1e-6, "the corner opposite the handle stays: {x:?} -> {y:?}");
+        if cmd == "insert.latex" {
+            assert!(
+                tag(&after, super::STYLE_TAG).is_some_and(|t| t.starts_with(&format!("size={};", grown[0]))),
+                "{:?}",
+                tag(&after, super::STYLE_TAG)
+            );
+            assert_eq!(tag(&after, SOURCE_TAG), Some(latex));
+            assert_eq!(after.children().len(), before.children().len());
+        }
+        // One undo puts it back as it was.
+        s.execute("edit.undo", &json!({})).unwrap();
+        assert_eq!(sizes(&shape(&s, &id)), sizes(&before));
+    }
+}
+
+/// The Size commands scale LaTeX too (Shape Format ▸ Size, Size and Position).
+#[test]
+fn size_commands_scale_latex() {
+    let mut s = session();
+    let id = s.execute("insert.latex", &json!({"latex": PROOF, "size": 20, "rect": [50, 50, 0, 0]})).unwrap()["id"].clone();
+    let w = shape(&s, &id).xfrm.unwrap().w;
+    s.execute("shape.resize", &json!({"ids": [id], "w": w * 1.5, "lockAspect": true})).unwrap();
+    let first = sizes(&shape(&s, &id))[0];
+    assert!((first - 30.0).abs() < 0.5, "{first}");
+    let w = shape(&s, &id).xfrm.unwrap().w;
+    s.execute("shape.sizePosition", &json!({"ids": [id], "w": w / 3.0, "lockAspect": true})).unwrap();
+    let first = sizes(&shape(&s, &id))[0];
+    assert!((first - 10.0).abs() < 0.5, "{first}");
+    assert_eq!(tag(&shape(&s, &id), SOURCE_TAG), Some(PROOF));
+}

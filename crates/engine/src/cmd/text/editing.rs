@@ -195,6 +195,31 @@ pub(crate) fn insert_field(s: &mut Session, field: &str, text: &str) -> Result<V
     ok()
 }
 
+/// Puts an equation run at the caret (replacing the selected text), in the text's own size and
+/// colour unless `run` sets them: an inline equation, as Insert ▸ Equation makes while typing.
+pub(crate) fn insert_math(s: &mut Session, run: Run) -> Result<Value> {
+    edit_text(s, move |body, t| {
+        let (a, b) = t.ordered();
+        let at = ed::delete(body, a, b);
+        let mut props = ed::props_at(body, at);
+        props.font = run.props.font.clone().or(props.font);
+        props.size = run.props.size.or(props.size);
+        props.no_proof = Some(true);
+        // An equation's letters are styled by the equation, not by the text around it.
+        props.italic = None;
+        props.bold = None;
+        props.link = None;
+        let src = TextBody {
+            paragraphs: vec![deckcraft_model::text::Paragraph { runs: vec![Run { props, ..run.clone() }], ..Default::default() }],
+            ..Default::default()
+        };
+        let c = ed::insert_body(body, at, &src);
+        t.anchor = c;
+        t.caret = c;
+    })?;
+    ok()
+}
+
 #[cfg(test)]
 mod rtl_promote_tests {
     use deckcraft_model::text::{Align, Paragraph, Run};

@@ -154,6 +154,7 @@ app's JSON control channel (`deckcraft --control PORT`).
 
 | Date | What landed |
 |---|---|
+| 2026-11-14 | Equations: Insert ▸ Equation while typing puts the equation in the text at the cursor; resizing LaTeX (by its handles, Shape Format ▸ Size or Size and Position) scales its text, set again to fill the box |
 | 2026-11-14 | Insert ▸ Proof Tree: a builder that edits ebproof proof trees on their picture (add, remove, move and drag steps; rule kinds and labels; templates; symbols; copy and paste; undo; the LaTeX pane) and inserts or updates them through `insert.latex` / `latex.set`; double-clicking a proof opens it there. The ebproof it writes compiles with ebproof 2.1.1 |
 | 2026-11-14 | Equations: Insert ▸ Equation takes LaTeX. `insert.equation` makes an Office Math equation; `insert.latex` typesets formulas (italic variables, TeX spacing, scripts), `array`/`tabular` with rules, `align`/`gather` and proof trees in ebproof, bussproofs, mathpartir and proof.sty syntax as text boxes and lines; `latex.get`/`latex.set` read and retypeset them. Symbols come from craft-math |
 | 2026-11-11 | Media: the Opus decoder and the Ogg, MP4/MOV and Matroska demuxers are craft-audio and craft-media from craft-libs; DeckCraft's own copies and re-export crates are removed |

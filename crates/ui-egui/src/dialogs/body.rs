@@ -881,10 +881,14 @@ fn dlg_symbol(app: &mut SlideApp, ui: &mut Ui, _d: &mut Dialog) -> bool {
 
 /// Insert ▸ Equation: LaTeX typeset by DeckCraft (formulas, arrays, proof trees) or as an Office
 /// equation. Opened on a LaTeX shape or an equation, it edits that one unless "Change the
-/// selected one" is unticked, which inserts a new one from the same LaTeX.
+/// selected one" is unticked, which inserts a new one from the same LaTeX. Opened while text is
+/// being typed, a formula goes into the text at the cursor.
 fn dlg_equation(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
+    let typing = app.session.active().and_then(|s| s.selection.text.as_ref()).is_some_and(|t| !t.notes);
     if !d.fields.contains_key("eq") {
-        let found = app.session.execute("latex.get", &json!({})).ok();
+        // While typing, the dialog inserts at the cursor rather than editing an equation found in
+        // that text.
+        let found = if typing { None } else { app.session.execute("latex.get", &json!({})).ok() };
         let field = |k: &str| found.as_ref().and_then(|v| v.get(k)).and_then(Value::as_str).unwrap_or_default().to_string();
         let kind = if field("kind") == "equation" { "equation" } else { "typeset" };
         d.fields.insert("eq".into(), field("latex"));
@@ -905,8 +909,15 @@ fn dlg_equation(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
         d.fields.insert("edit".into(), editing.to_string());
     }
     let proof = deckcraft_engine::typeset::is_proof(&v);
+    let inline = typing && !editing && deckcraft_engine::typeset::kind_of(&v) == deckcraft_engine::typeset::Kind::Formula;
     let mut kind = d.get("as", "typeset");
-    if !editing {
+    if typing && !editing {
+        ui.weak(if inline {
+            "Goes into the text at the cursor, as an equation."
+        } else {
+            "A proof tree or an array can't sit in a line of text: it is inserted as its own shape."
+        });
+    } else if !editing {
         ui.radio_value(&mut kind, "typeset".to_string(), "Typeset by DeckCraft (looks the same in DeckCraft, PDF and PowerPoint)");
         ui.add_enabled_ui(!proof, |ui| ui.radio_value(&mut kind, "equation".to_string(), "Office equation (PowerPoint edits it as an equation)"));
         d.fields.insert("as".into(), kind.clone());
@@ -923,7 +934,7 @@ fn dlg_equation(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
     if ok && !v.trim().is_empty() {
         let result = if editing {
             app.run("latex.set", json!({"latex": v}))
-        } else if kind == "equation" && !proof {
+        } else if inline || (kind == "equation" && !proof) {
             app.run("insert.equation", json!({"latex": v}))
         } else {
             app.run("insert.latex", json!({"latex": v}))

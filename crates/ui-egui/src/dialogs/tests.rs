@@ -425,3 +425,42 @@ fn equation_dialog_takes_new_lines_and_double_click_reopens_it() {
     );
     assert!(h.query(button("Update")).is_some());
 }
+
+/// Insert ▸ Equation while typing in a text box puts the equation in the text at the cursor.
+#[test]
+fn equation_dialog_inserts_inline_while_typing() {
+    use egui::accesskit::Role;
+    use egui::{Key, Modifiers, vec2};
+    use egui_kittest::kittest::Queryable as _;
+    use serde_json::json;
+
+    use crate::SlideApp;
+    let mut session = deckcraft_engine::Session::with_new();
+    session.execute("insert.textBox", &json!({"rect": [60, 60, 400, 40]})).unwrap();
+    session.execute("text.insert", &json!({"text": "since "})).unwrap();
+    let shapes_before = session.doc().unwrap().doc.slides[0].shapes.len();
+    let mut h = egui_kittest::Harness::builder().with_size(vec2(1400.0, 900.0)).build_ui_state(
+        |ui, app: &mut SlideApp| {
+            app.logic(ui.ctx());
+            app.ui(ui);
+        },
+        SlideApp::new(session, crate::Services::default()),
+    );
+    h.run_steps(2);
+    h.state_mut().run("app.dialog", json!({"id": "equation"})).unwrap();
+    h.run_steps(2);
+    assert!(h.query(egui_kittest::kittest::by().label_contains("into the text at the cursor")).is_some());
+    let field = || egui_kittest::kittest::by().role(Role::MultilineTextInput).label_contains("Type LaTeX");
+    h.get(field()).focus();
+    h.run_steps(1);
+    h.get(field()).type_text(r"\Gamma \vdash A");
+    h.run_steps(1);
+    h.key_press_modifiers(Modifiers::COMMAND, Key::Enter);
+    h.run_steps(3);
+    let st = h.state().session.doc().unwrap();
+    assert_eq!(st.doc.slides[0].shapes.len(), shapes_before, "no new shape");
+    let id = st.selection.text.as_ref().unwrap().shape;
+    let runs = &st.shape(id).unwrap().text.as_ref().unwrap().paragraphs[0].runs;
+    assert_eq!(runs[0].text, "since ");
+    assert!(matches!(runs[1].kind, deckcraft_model::text::RunKind::Math { .. }) && runs[1].text.contains('⊢'), "{runs:#?}");
+}
