@@ -87,7 +87,13 @@ pub(crate) fn insert_text(s: &mut Session, text: &str, props: Option<RunProps>) 
     let pos = edit_text(s, |body, t| {
         let (a, b) = t.ordered();
         let at = ed::delete(body, a, b);
-        let props = props.clone().or_else(|| if a != b { Some(ed::props_at(body, at)) } else { unlinked_at_link_end(body, at) });
+        let props = props.clone().or_else(|| {
+            if a != b {
+                Some(beside_equation(body, at).unwrap_or_else(|| ed::props_at(body, at)))
+            } else {
+                unlinked_at_link_end(body, at).or_else(|| beside_equation(body, at))
+            }
+        });
         let c = ed::insert(body, at, &text, props);
         t.anchor = c;
         t.caret = c;
@@ -153,6 +159,43 @@ pub(super) fn unlinked_at_link_end(body: &TextBody, at: Pos) -> Option<RunProps>
     }
     props.link = None;
     Some(props)
+}
+
+/// Text typed right after an inline equation (or before one at the start of a paragraph) takes
+/// the formatting of the text around it, not the equation's font: the nearest text run before
+/// the equation, else the one after it. `None` when the caret isn't beside an equation.
+pub(super) fn beside_equation(body: &TextBody, at: Pos) -> Option<RunProps> {
+    let para = body.paragraphs.get(at.0)?;
+    // The run holding the character before the caret (or, at the start, the first run).
+    let mut start = 0;
+    let mut index = None;
+    for (i, r) in para.runs.iter().enumerate() {
+        let end = start + r.char_len();
+        if (at.1 > 0 && at.1 > start && at.1 <= end) || (at.1 == 0 && i == 0) {
+            index = Some(i);
+            break;
+        }
+        start = end;
+    }
+    let i = index?;
+    if !matches!(para.runs.get(i)?.kind, RunKind::Math { .. }) {
+        return None;
+    }
+    let text = |r: &&Run| matches!(r.kind, RunKind::Text);
+    let near = para
+        .runs
+        .get(..i)
+        .and_then(|before| before.iter().rev().find(text))
+        .or_else(|| para.runs.get(i + 1..).and_then(|after| after.iter().find(text)));
+    Some(match near {
+        Some(r) => r.props.clone(),
+        None => {
+            let mut p = para.runs.get(i)?.props.clone();
+            p.font = None;
+            p.no_proof = None;
+            p
+        }
+    })
 }
 
 pub(crate) fn paste_body(s: &mut Session, src: &TextBody) -> Result<Value> {

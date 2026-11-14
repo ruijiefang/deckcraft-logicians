@@ -259,6 +259,7 @@ fn an_equation_goes_inline_while_typing() {
     assert!(kinds[1].0.contains('⊢'));
     assert_eq!(runs[1].props.font.as_deref(), Some("Cambria Math"));
     assert_eq!(runs[1].props.size, None, "the text's own size");
+    assert_eq!(runs[2].props, runs[0].props, "text typed after the equation is in the text's formatting");
     // It's still an equation the dialog can read.
     assert_eq!(s.execute("latex.get", &json!({"id": id.0})).unwrap()["kind"], "equation");
 }
