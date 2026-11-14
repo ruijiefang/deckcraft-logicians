@@ -11,14 +11,16 @@
   <img src="assets/app-icon/hicolor/256x256/apps/ai.storyteller.deckcraft.png" width="128" height="128" alt="DeckCraft icon: a presentation screen with a bar chart on an orange tile">
 </p>
 
-<h1 align="center">DeckCraft</h1>
+<h1 align="center">DeckCraft (Logicians version)</h1>
 
 <p align="center">
-  <b>Presentations and slide shows; an open-source, modern presentation and slide designer, built in pure Rust.</b>
+  <b>Presentations and slide shows; an open-source, modern presentation and slide designer for logicians, built in pure Rust.</b>
 </p>
 
 <p align="center">
-  Build decks with themes, layouts, shapes, pictures, tables, charts, transitions and animations,
+  DeckCraft-Logicians is a modified version of DeckCraft for practicioners of logic, mathematics, and computer science. 
+  Build decks <strong>native LaTeX support for logical symbols and a visual proof tree editor via the
+  ebproofs package</strong>. DeckCraft also allows you to build with themes, layouts, shapes, pictures, tables, charts, transitions and animations,
   open and save .pptx presentation files, and present them full screen. Native on macOS, Windows, Linux
   and FreeBSD, and in the browser. Every button is also a command that the CLI and AI agents
   (through MCP) can drive.
