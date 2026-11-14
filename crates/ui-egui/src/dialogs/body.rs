@@ -18,7 +18,7 @@ use super::theme_colors::theme_colors_dialog;
 use super::theme_fonts::theme_fonts_dialog;
 use super::trim::{seconds_text_to_ms, trim_seed};
 use super::zoom::zoom_dialog;
-use super::{Dialog, SlideApp, Tokens, Ui, Value, buttons, check, field, field_of, json, num, theme, vec2};
+use super::{Dialog, SlideApp, Tokens, Ui, Value, buttons, buttons_multiline, check, field, field_of, json, num, theme, vec2};
 
 /// Returns true when the dialog should close.
 pub(super) fn body(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
@@ -910,7 +910,9 @@ fn dlg_equation(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
         ui.add_enabled_ui(!proof, |ui| ui.radio_value(&mut kind, "equation".to_string(), "Office equation (PowerPoint edits it as an equation)"));
         d.fields.insert("as".into(), kind.clone());
     }
-    let (ok, cancel) = buttons(ui, if editing { "Update" } else { "Insert" });
+    let ok_label = if editing { "Update" } else { "Insert" };
+    ui.weak(format!("Enter starts a new line; {} presses {ok_label}.", crate::ribbon::pretty_shortcut("Cmd+Enter")));
+    let (ok, cancel) = buttons_multiline(ui, ok_label);
     if ok && !v.trim().is_empty() {
         let result = if editing {
             app.run("latex.set", json!({"latex": v}))

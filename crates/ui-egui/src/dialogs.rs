@@ -127,13 +127,24 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
 }
 
 fn buttons(ui: &mut Ui, ok_label: &str) -> (bool, bool) {
+    buttons_with(ui, ok_label, |i| i.key_pressed(egui::Key::Enter))
+}
+
+/// [`buttons`] for a dialog whose field takes several lines: Enter starts a new line there, so
+/// Ctrl+Enter (⌘Enter on a Mac) presses the default button.
+fn buttons_multiline(ui: &mut Ui, ok_label: &str) -> (bool, bool) {
+    buttons_with(ui, ok_label, |i| i.modifiers.command && i.key_pressed(egui::Key::Enter))
+}
+
+/// The default and Cancel buttons; `submit` says when the keyboard presses the default one.
+fn buttons_with(ui: &mut Ui, ok_label: &str, submit: impl Fn(&egui::InputState) -> bool) -> (bool, bool) {
     let mut ok = false;
     let mut cancel = false;
     ui.add_space(8.0);
     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
         let t = Tokens::get(ui.ctx());
         if ui.add(egui::Button::new(egui::RichText::new(ok_label).color(t.accent_text)).fill(t.accent).min_size(vec2(72.0, 24.0))).clicked()
-            || ui.input(|i| i.key_pressed(egui::Key::Enter))
+            || ui.input(&submit)
         {
             ok = true;
         }

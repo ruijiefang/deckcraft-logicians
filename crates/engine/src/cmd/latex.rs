@@ -324,6 +324,21 @@ fn latex_root(shapes: &[Shape], id: ShapeId, depth: usize) -> Option<&Shape> {
     })
 }
 
+/// The LaTeX shape a double-click on `id` edits through Insert ▸ Equation: a shape typeset from
+/// LaTeX (or a member of one), or a text box holding nothing but an equation. Their text is drawn
+/// from the source, so typing into it would be lost the next time it is typeset. Text with an
+/// equation among other words stays editable in place.
+pub(crate) fn latex_target(st: &crate::DocState, id: ShapeId) -> Option<ShapeId> {
+    let shapes = current_shapes(&st.doc, &st.selection)?;
+    let root = latex_root(shapes, id, 0)?;
+    let only_math = root.text.as_ref().is_some_and(|t| {
+        let mut runs = t.paragraphs.iter().flat_map(|p| &p.runs);
+        runs.clone().any(|r| matches!(r.kind, RunKind::Math { .. }))
+            && runs.all(|r| matches!(r.kind, RunKind::Math { .. }) || (matches!(r.kind, RunKind::Text | RunKind::Break) && r.text.trim().is_empty()))
+    });
+    (tag(root, SOURCE_TAG).is_some() || only_math).then_some(root.id)
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Found {
     Typeset,

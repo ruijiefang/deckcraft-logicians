@@ -362,3 +362,61 @@ fn the_equation_dialog_typesets_latex_and_edits_it_again() {
         .collect();
     assert_eq!(sources, vec![longer.to_string(), longer.to_string()]);
 }
+
+/// In the equation dialog Enter starts a new line in the LaTeX and Ctrl+Enter (⌘Enter) inserts it;
+/// double-clicking what it made (as the canvas does) opens the dialog again on that LaTeX.
+#[test]
+fn equation_dialog_takes_new_lines_and_double_click_reopens_it() {
+    use egui::accesskit::Role;
+    use egui::{Key, Modifiers, vec2};
+    use egui_kittest::kittest::Queryable as _;
+    use serde_json::json;
+
+    use crate::SlideApp;
+    let session = deckcraft_engine::Session::with_new();
+    let mut h = egui_kittest::Harness::builder().with_size(vec2(1400.0, 900.0)).build_ui_state(
+        |ui, app: &mut SlideApp| {
+            app.logic(ui.ctx());
+            app.ui(ui);
+        },
+        SlideApp::new(session, crate::Services::default()),
+    );
+    h.run_steps(2);
+    let groups = |app: &SlideApp| app.session.doc().unwrap().doc.slides[0].shapes.iter().filter(|s| s.is_group()).cloned().collect::<Vec<_>>();
+    let field = || egui_kittest::kittest::by().role(Role::MultilineTextInput).label_contains("Type LaTeX");
+    let button = |label: &'static str| egui_kittest::kittest::by().role(Role::Button).label(label);
+    let two_lines = "\\hypo{A}\n\\infer1[R]{B}";
+
+    h.state_mut().run("app.dialog", json!({"id": "equation"})).unwrap();
+    h.run_steps(2);
+    h.get(field()).focus();
+    h.run_steps(1);
+    h.get(field()).type_text(r"\hypo{A}");
+    h.run_steps(1);
+    h.key_press(Key::Enter);
+    h.run_steps(1);
+    h.get(field()).type_text(r"\infer1[R]{B}");
+    h.run_steps(2);
+    assert_eq!(h.get(field()).value().as_deref(), Some(two_lines));
+    assert!(groups(h.state()).is_empty());
+    assert_eq!(h.get_all(button("Insert")).count(), 2, "Enter doesn't close the dialog");
+
+    h.key_press_modifiers(Modifiers::COMMAND, Key::Enter);
+    h.run_steps(3);
+    let made = groups(h.state());
+    assert_eq!(made.len(), 1);
+    assert_eq!(h.get_all(button("Insert")).count(), 1, "Ctrl+Enter inserted and closed the dialog");
+    assert_eq!(h.state_mut().run("latex.get", json!({})).unwrap()["latex"].as_str(), Some(two_lines));
+
+    // Double-click a statement of the proof: the dialog opens on its LaTeX, to update it.
+    h.state_mut().run("edit.selectNone", json!({})).ok();
+    let g = &made[0];
+    let statement = g.children().iter().find(|c| c.text.is_some()).and_then(|c| c.xfrm).unwrap();
+    let (x, y) = (g.xfrm.unwrap().x + statement.x + statement.w / 2.0, g.xfrm.unwrap().y + statement.y + statement.h / 2.0);
+    let ev =
+        deckcraft_engine::PointerEvent { kind: deckcraft_engine::PointerKind::DoubleClick, x, y, mods: Default::default(), tol: 3.0, pressure: None };
+    h.state_mut().session.pointer(ev).unwrap();
+    h.run_steps(3);
+    assert_eq!(h.get(field()).value().as_deref(), Some(two_lines));
+    assert!(h.query(button("Update")).is_some());
+}

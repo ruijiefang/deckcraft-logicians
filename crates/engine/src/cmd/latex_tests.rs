@@ -185,3 +185,55 @@ fn equation_omml_uses_only_the_math_namespace() {
         }
     }
 }
+
+/// Double-clicks `at` (slide points) and returns what the engine answered.
+fn double_click(s: &mut Session, at: (f64, f64)) -> serde_json::Value {
+    use crate::{Mods, PointerEvent, PointerKind};
+    s.ui_requests.clear();
+    s.pointer(PointerEvent { kind: PointerKind::DoubleClick, x: at.0, y: at.1, mods: Mods::default(), tol: 3.0, pressure: None }).unwrap()
+}
+
+fn centre(sh: &Shape) -> (f64, f64) {
+    let x = sh.xfrm.unwrap();
+    (x.x + x.w / 2.0, x.y + x.h / 2.0)
+}
+
+fn asks_for_the_equation_dialog(s: &Session) -> bool {
+    s.ui_requests.iter().any(|r| matches!(r, crate::UiRequest::Dialog { id, .. } if id == "equation"))
+}
+
+/// Double-clicking LaTeX opens Insert ▸ Equation on its source instead of a caret going into the
+/// text drawn from it: a typeset formula, a statement of a proof tree and an Office equation.
+#[test]
+fn double_click_on_latex_opens_the_equation_dialog() {
+    let mut s = session();
+    let formula = s.execute("insert.latex", &json!({"latex": r"\forall x\, P(x)", "rect": [40, 40, 0, 0]})).unwrap()["id"].clone();
+    let proof = s.execute("insert.latex", &json!({"latex": PROOF, "rect": [300, 40, 0, 0]})).unwrap()["id"].clone();
+    let equation = s.execute("insert.equation", &json!({"latex": r"a \vdash b", "rect": [40, 400, 300, 40]})).unwrap()["id"].clone();
+
+    let f = shape(&s, &formula);
+    let g = shape(&s, &proof);
+    let first_statement = g.children().iter().find(|c| c.text.is_some()).cloned().unwrap();
+    let (gx, gy) = (g.xfrm.unwrap().x, g.xfrm.unwrap().y);
+    let (cx, cy) = centre(&first_statement);
+    let e = shape(&s, &equation);
+    for (id, at) in [(&formula, centre(&f)), (&proof, (gx + cx, gy + cy)), (&equation, centre(&e))] {
+        let v = double_click(&mut s, at);
+        assert_eq!(v["dialog"], "equation", "{id}: {v}");
+        assert!(asks_for_the_equation_dialog(&s));
+        let st = s.doc().unwrap();
+        assert_eq!(st.selection.shapes, vec![deckcraft_model::ShapeId(id.as_u64().unwrap() as u32)]);
+        assert!(st.selection.text.is_none(), "no caret in LaTeX's drawn text");
+        // The dialog reads the source of what was double-clicked.
+        assert!(s.execute("latex.get", &json!({})).unwrap()["latex"].as_str().is_some_and(|l| !l.is_empty()));
+    }
+
+    // Ordinary text is still edited in place.
+    let plain = s.execute("insert.textBox", &json!({"rect": [500, 400, 200, 40], "text": "hello world"})).unwrap()["id"].clone();
+    s.execute("text.exit", &json!({})).unwrap();
+    let at = centre(&shape(&s, &plain));
+    let v = double_click(&mut s, at);
+    assert_ne!(v["dialog"], "equation");
+    assert!(!asks_for_the_equation_dialog(&s));
+    assert!(s.doc().unwrap().selection.text.is_some());
+}
