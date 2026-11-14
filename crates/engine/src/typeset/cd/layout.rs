@@ -420,3 +420,22 @@ pub(crate) fn layout(d: &Diagram, style: &Style, measure: Measure, ring: usize) 
     };
     Typeset { kind: Kind::Diagram, w: (x1 - x0).max(0.0), h: (y1 - y0).max(0.0), items, thickness: thickness(style), regions, grid: Some(grid) }
 }
+
+/// The strokes of an arrow of this look from (0, 0) to (`len`, 0), at size `em`: each path with
+/// its width and dash. What the editor's style buttons show (drawn as the diagram draws them).
+pub fn sample(tail: Tail, body: Body, head: Head, len: f64, em: f64) -> Vec<(BezPath, f64, Option<(f64, f64)>)> {
+    let mut a = Arrow::new(End::Cell(At::new(0, 0)), End::Cell(At::new(0, 1)));
+    (a.tail, a.body, a.head) = (tail, body, head);
+    let point = |x: f64| Node { rect: Rect::new(x, 0.0, x, 0.0), centre: Point::new(x, 0.0), circle: None };
+    let style = Style { font: None, size: if em.is_finite() && em > 0.0 { em } else { 10.0 } };
+    let measure = |_: &deckcraft_model::text::TextBody| (0.0, 0.0, 0.0);
+    let reference = math("", &style, &measure);
+    let laid = lay_arrow(&a, 0, point(0.0), point(len.clamp(1.0, 1_000.0)), false, &style, &reference, &measure);
+    laid.items
+        .into_iter()
+        .filter_map(|i| match i {
+            Item::Path { path, stroke: Some(s), .. } => Some((path, s.width, s.dash)),
+            _ => None,
+        })
+        .collect()
+}

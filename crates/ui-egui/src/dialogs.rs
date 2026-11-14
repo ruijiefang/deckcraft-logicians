@@ -39,6 +39,7 @@ fn title(id: &str) -> &'static str {
         "setupShow" => "Set Up Slide Show",
         "zoom" => "Zoom",
         "proofTree" => "Proof Tree",
+        "commutativeDiagram" => "Commutative Diagram",
         "comment" => "New Comment",
         "altText" => "Alt Text",
         "outline" => "Slides from Outline",
@@ -84,8 +85,9 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
     let Some(mut d) = app.dialog.take() else { return };
     let mut open = true;
     let mut close = false;
-    // The Proof Tree builder is a working window: it can be made bigger for a big proof.
-    let builder = d.id == "proofTree";
+    // The Proof Tree builder and the diagram editor are working windows: they can be made
+    // bigger for a big proof or diagram.
+    let builder = d.id == "proofTree" || d.id == "commutativeDiagram";
     let mut window = egui::Window::new(title(&d.id))
         .id(egui::Id::unique(("dialog", d.id.clone())))
         .collapsible(false)
@@ -98,6 +100,8 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
         window = window.default_size(vec2(760.0, 420.0)).min_width(720.0).min_height(420.0);
     } else if d.id == "themeFonts" {
         window = window.default_size(vec2(460.0, 320.0)).min_width(420.0).min_height(300.0);
+    } else if d.id == "commutativeDiagram" {
+        window = window.default_size(vec2(1120.0, 740.0)).min_width(880.0).min_height(580.0);
     } else if builder {
         window = window.default_size(vec2(1040.0, 690.0)).min_width(820.0).min_height(560.0);
     }
@@ -106,6 +110,7 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
             "themeColors" => 700.0,
             "themeFonts" => 400.0,
             "proofTree" => 800.0,
+            "commutativeDiagram" => 860.0,
             _ => 340.0,
         });
         if d.id == "themeColors" {
@@ -135,6 +140,9 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
     // its state, so the next one starts from the slide again.
     if app.dialog.as_ref().is_none_or(|d| d.id != "proofTree") {
         app.proof_builder = None;
+    }
+    if app.dialog.as_ref().is_none_or(|d| d.id != "commutativeDiagram") {
+        app.cd_editor = None;
     }
 }
 
@@ -228,6 +236,7 @@ use deckcraft_text::datetime::DATE_KINDS;
 mod about;
 mod alt_text;
 mod body;
+mod cd_editor;
 mod columns;
 mod date_time;
 mod export;
@@ -319,6 +328,7 @@ fn inches_text(v: Option<&Value>) -> String {
 }
 
 pub mod credits;
+pub use cd_editor::Editor as CdEditor;
 pub use proof_tree::Builder as ProofBuilder;
 #[cfg(test)]
 mod font_dialog_tests;

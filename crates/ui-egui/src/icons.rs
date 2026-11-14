@@ -140,6 +140,7 @@ icons! {
     Object => "object",
     Equation => "equation",
     ProofTree => "proof-tree",
+    CommutativeDiagram => "commutative-diagram",
     Symbol => "symbol",
     Video => "video",
     Audio => "audio",

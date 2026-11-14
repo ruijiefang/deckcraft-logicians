@@ -46,6 +46,7 @@ pub(super) fn body(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
         "replaceFonts" => dlg_replace_fonts(app, ui, d),
         "symbol" => dlg_symbol(app, ui, d),
         "proofTree" => super::proof_tree::dialog(app, ui, d),
+        "commutativeDiagram" => super::cd_editor::dialog(app, ui, d),
         "equation" => dlg_equation(app, ui, d),
         "pasteSpecial" => dlg_paste_special(app, ui, d),
         "find" => find_dialog(app, ui, d),
@@ -896,7 +897,9 @@ fn dlg_equation(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
         d.fields.insert("found".into(), found.is_some().to_string());
         d.fields.insert("edit".into(), found.is_some().to_string());
     }
-    let caption = ui.label("Type LaTeX: a formula, an array or tabular, or a proof tree in ebproof, bussproofs, mathpartir or proof.sty syntax.");
+    let caption = ui.label(
+        "Type LaTeX: a formula, an array or tabular, a proof tree in ebproof, bussproofs, mathpartir or proof.sty syntax, or a tikz-cd diagram.",
+    );
     let mut v = d.get("eq", "");
     ui.add(
         egui::TextEdit::multiline(&mut v).hint_text(r"\forall x\, P(x) \vdash \exists y\, P(y)").desired_rows(8).desired_width(460.0).code_editor(),
@@ -919,11 +922,21 @@ fn dlg_equation(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
         });
     } else if !editing {
         ui.radio_value(&mut kind, "typeset".to_string(), "Typeset by DeckCraft (looks the same in DeckCraft, PDF and PowerPoint)");
-        ui.add_enabled_ui(!proof, |ui| ui.radio_value(&mut kind, "equation".to_string(), "Office equation (PowerPoint edits it as an equation)"));
+        let typeset_only = proof || deckcraft_engine::typeset::cd::is_diagram(&v);
+        ui.add_enabled_ui(!typeset_only, |ui| {
+            ui.radio_value(&mut kind, "equation".to_string(), "Office equation (PowerPoint edits it as an equation)")
+        });
         d.fields.insert("as".into(), kind.clone());
     }
     if proof && ui.button("Open in Proof Tree builder").on_hover_text("Edit this proof by its steps").clicked() {
         let mut next = Dialog::new("proofTree");
+        next.params = json!({"latex": v, "edit": editing});
+        app.dialog = Some(next);
+        return true;
+    }
+    let diagram = deckcraft_engine::typeset::cd::is_diagram(&v);
+    if diagram && ui.button("Open in diagram editor").on_hover_text("Edit this diagram on its grid").clicked() {
+        let mut next = Dialog::new("commutativeDiagram");
         next.params = json!({"latex": v, "edit": editing});
         app.dialog = Some(next);
         return true;
@@ -934,7 +947,7 @@ fn dlg_equation(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
     if ok && !v.trim().is_empty() {
         let result = if editing {
             app.run("latex.set", json!({"latex": v}))
-        } else if inline || (kind == "equation" && !proof) {
+        } else if inline || (kind == "equation" && !proof && !deckcraft_engine::typeset::cd::is_diagram(&v)) {
             app.run("insert.equation", json!({"latex": v}))
         } else {
             app.run("insert.latex", json!({"latex": v}))

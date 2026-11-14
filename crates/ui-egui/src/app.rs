@@ -51,6 +51,7 @@ impl SlideApp {
             squiggles: Default::default(),
             dialog: None,
             proof_builder: None,
+            cd_editor: None,
             thesaurus_query: String::new(),
             show: None,
             anim_preview: None,

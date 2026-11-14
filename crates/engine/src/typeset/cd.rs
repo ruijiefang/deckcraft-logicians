@@ -14,8 +14,8 @@ mod parse;
 mod tests;
 mod write;
 
-pub use layout::Grid;
 pub(crate) use layout::layout;
+pub use layout::{Grid, sample};
 pub use parse::{Opened, is_diagram, open};
 pub use write::{preamble, write};
 

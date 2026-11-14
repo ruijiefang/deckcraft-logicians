@@ -231,6 +231,8 @@ pub struct SlideApp {
     pub dialog: Option<dialogs::Dialog>,
     /// The Proof Tree builder's tree, selection and history while its dialog is open.
     pub proof_builder: Option<dialogs::ProofBuilder>,
+    /// The Commutative Diagram editor while its window is open.
+    pub cd_editor: Option<dialogs::CdEditor>,
     /// The word looked up in the Thesaurus pane.
     pub thesaurus_query: String,
     pub show: Option<show::Show>,
