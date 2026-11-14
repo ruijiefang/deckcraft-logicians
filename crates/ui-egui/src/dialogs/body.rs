@@ -2,7 +2,6 @@ use super::about::{about, credits_block};
 use super::alt_text::alt_text_starts_decorative;
 use super::columns::columns_dialog;
 use super::date_time::{date_rows, date_time_dialog};
-use super::equation::pretty_equation;
 use super::export::gif_options;
 use super::find::find_dialog;
 use super::font::font_dialog;
@@ -879,20 +878,52 @@ fn dlg_symbol(app: &mut SlideApp, ui: &mut Ui, _d: &mut Dialog) -> bool {
     ok || cancel
 }
 
+/// Insert ▸ Equation: LaTeX typeset by DeckCraft (formulas, arrays, proof trees) or as an Office
+/// equation. Opened on a LaTeX shape or an equation, it edits that one unless "Change the
+/// selected one" is unticked, which inserts a new one from the same LaTeX.
 fn dlg_equation(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
-    ui.label("Type an equation in linear form (e.g. a^2+b^2=c^2, x=(-b±√(b^2-4ac))/2a).");
+    if !d.fields.contains_key("eq") {
+        let found = app.session.execute("latex.get", &json!({})).ok();
+        let field = |k: &str| found.as_ref().and_then(|v| v.get(k)).and_then(Value::as_str).unwrap_or_default().to_string();
+        let kind = if field("kind") == "equation" { "equation" } else { "typeset" };
+        d.fields.insert("eq".into(), field("latex"));
+        d.fields.insert("as".into(), kind.into());
+        d.fields.insert("found".into(), found.is_some().to_string());
+        d.fields.insert("edit".into(), found.is_some().to_string());
+    }
+    let caption = ui.label("Type LaTeX: a formula, an array or tabular, or a proof tree in ebproof, bussproofs, mathpartir or proof.sty syntax.");
     let mut v = d.get("eq", "");
-    ui.add(egui::TextEdit::singleline(&mut v).hint_text("Equation").desired_width(340.0).font(theme::font(15.0)));
+    ui.add(
+        egui::TextEdit::multiline(&mut v).hint_text(r"\forall x\, P(x) \vdash \exists y\, P(y)").desired_rows(8).desired_width(460.0).code_editor(),
+    )
+    .labelled_by(caption.id);
     d.fields.insert("eq".into(), v.clone());
-    let (ok, cancel) = buttons(ui, "Insert");
-    if ok && !v.is_empty() {
-        let pretty = pretty_equation(&v);
-        let size = app.session.active().map(|s| s.doc.slide_size).unwrap_or(deckcraft_model::defaults::WIDE);
-        run(app, "insert.textBox", json!({"rect": [size.width / 2.0 - 150.0, size.height / 2.0 - 25.0, 300, 50], "text": pretty}));
-        run(app, "text.exit", json!({}));
-        run(app, "format.font", json!({"family": "Liberation Serif"}));
-        run(app, "format.italic", json!({"on": true}));
-        run(app, "format.size", json!({"size": 28}));
+    let mut editing = d.get("edit", "false") == "true";
+    if d.get("found", "false") == "true" {
+        ui.checkbox(&mut editing, "Change the selected one");
+        d.fields.insert("edit".into(), editing.to_string());
+    }
+    let proof = deckcraft_engine::typeset::is_proof(&v);
+    let mut kind = d.get("as", "typeset");
+    if !editing {
+        ui.radio_value(&mut kind, "typeset".to_string(), "Typeset by DeckCraft (looks the same in DeckCraft, PDF and PowerPoint)");
+        ui.add_enabled_ui(!proof, |ui| ui.radio_value(&mut kind, "equation".to_string(), "Office equation (PowerPoint edits it as an equation)"));
+        d.fields.insert("as".into(), kind.clone());
+    }
+    let (ok, cancel) = buttons(ui, if editing { "Update" } else { "Insert" });
+    if ok && !v.trim().is_empty() {
+        let result = if editing {
+            app.run("latex.set", json!({"latex": v}))
+        } else if kind == "equation" && !proof {
+            app.run("insert.equation", json!({"latex": v}))
+        } else {
+            app.run("insert.latex", json!({"latex": v}))
+        };
+        if let Err(e) = result {
+            // Keep the dialog open on the LaTeX so it can be fixed.
+            app.set_status(e);
+            return cancel;
+        }
     }
     ok || cancel
 }

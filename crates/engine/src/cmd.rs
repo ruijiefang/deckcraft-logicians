@@ -13,6 +13,7 @@ pub mod format;
 pub mod ideas;
 pub mod insert;
 pub mod inspect;
+pub mod latex;
 pub mod media;
 pub mod merge;
 pub mod picture_style;
@@ -167,6 +168,7 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(slide::specs());
         v.extend(reuse::specs());
         v.extend(insert::specs());
+        v.extend(latex::specs());
         v.extend(smartart::specs());
         v.extend(shape::specs());
         v.extend(background::specs());

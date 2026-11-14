@@ -1,6 +1,6 @@
 # Where DeckCraft falls short of PowerPoint
 
-> **Last reviewed:** 2026-10-30 · **Last updated:** 2026-11-04 · **Change:** trivial (workflow-breaking regression fixed: Ctrl+C/X/V use the system clipboard again; #1414 to re-test on Windows; previous: trivial, run alternate language and reflection transforms survive saves; reused slide contents scale to the destination, picker thumbnails remain a gap; previous: trivial (locked No Fill and no-outline click-through regression coverage added; No Fill hit-testing follows resolved fill instead of the presence of a style (#1621); scores unchanged)) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
+> **Last reviewed:** 2026-10-30 · **Last updated:** 2026-11-14 · **Change:** trivial (LaTeX in Insert ▸ Equation: Office Math equations and DeckCraft-typeset formulas, arrays and proof trees; the equations gap stays open for 2-D layout and an editor; previous: trivial (workflow-breaking regression fixed: Ctrl+C/X/V use the system clipboard again; #1414 to re-test on Windows; previous: trivial, run alternate language and reflection transforms survive saves; reused slide contents scale to the destination, picker thumbnails remain a gap; previous: trivial (locked No Fill and no-outline click-through regression coverage added; No Fill hit-testing follows resolved fill instead of the presence of a style (#1621); scores unchanged))) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 
 Every known shortfall, one entry each, ranked by how much it stops someone who presents with
 PowerPoint from switching. This is the work list: pick from the top. Numbers are summarized in
@@ -278,8 +278,15 @@ and starts at that effect. The pane has an advanced timeline with draggable bars
 - **Estimate:** 2–4 h.
 
 ### Equations
-- **Evidence:** checklist row missing; PR #55 (OMML editor, +10.5k lines) is open.
-- **Estimate:** 3–6 h to review, land and round-trip.
+- **Evidence:** checklist row P. Insert ▸ Equation takes LaTeX: `insert.equation` writes an Office
+  Math equation PowerPoint edits as one, and `insert.latex` typesets formulas, arrays and tables
+  with their rules, `align`/`gather` lines and proof trees (ebproof, bussproofs, mathpartir,
+  proof.sty) as text boxes and lines that look the same in DeckCraft, PDF and PowerPoint. DeckCraft
+  still draws an Office Math equation as its linear text (no 2-D fractions, scripts, radicals or
+  matrices) and has no structured equation editor; PRs #1891, #1029, #192 and #778 propose one.
+  amssymb's turnstiles (`\vDash`, `\Vdash`, `\nvdash`…), `\Box`, `\Diamond`, `\land`, `\lor` and
+  many relations reach LaTeX input once the craft-libs pin includes craft-math's fuller symbol table.
+- **Estimate:** 3–6 h to land one equation layout on craft-math's tree.
 
 ### Smaller missing rows
 Zoom: live thumbnails, the zoom-in animation and the native `p166:sldZm` element (3–5 h;
@@ -368,6 +375,7 @@ Detail in [localization-parity.md](localization-parity.md).
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-14 | trivial | Equations: LaTeX input as Office Math (`insert.equation`) or typeset by DeckCraft (`insert.latex`: formulas, arrays with rules, proof trees); the entry stays open for 2-D layout of Office Math and an equation editor |
 | 2026-11-02 | trivial | Run alternate-language metadata now survives native and PPTX saves; UI and proofing gaps remain; scores unchanged |
 | 2026-11-02 | trivial | PPTX reflection geometry is retained through native and PPTX resaves; no rendering parity claim |
 | 2026-11-02 | trivial | Reused slide geometry and content scale to the destination; picker thumbnails remain the reuse gap |

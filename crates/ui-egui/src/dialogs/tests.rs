@@ -286,3 +286,79 @@ fn the_open_dialog_reads_the_caret_word_and_the_shape_click() {
     let seed = hyperlink_seed_of(Some(&st));
     assert_eq!(seed, HyperlinkSeed::blank(), "a caret at the end of the word inserts a new link");
 }
+
+/// Insert ▸ Equation typesets LaTeX (a proof tree here), keeps the dialog open on LaTeX it can't
+/// read, and opened again on what it made, shows that LaTeX and updates it in place.
+#[test]
+fn the_equation_dialog_typesets_latex_and_edits_it_again() {
+    use egui::accesskit::Role;
+    use egui::{Key, Modifiers, vec2};
+    use egui_kittest::kittest::Queryable as _;
+    use serde_json::json;
+
+    use crate::SlideApp;
+    let session = deckcraft_engine::Session::with_new();
+    let mut h = egui_kittest::Harness::builder().with_size(vec2(1400.0, 900.0)).build_ui_state(
+        |ui, app: &mut SlideApp| {
+            app.logic(ui.ctx());
+            app.ui(ui);
+        },
+        SlideApp::new(session, crate::Services::default()),
+    );
+    h.run_steps(2);
+    let groups = |app: &SlideApp| app.session.doc().unwrap().doc.slides[0].shapes.iter().filter(|s| s.is_group()).count();
+    let field = || egui_kittest::kittest::by().role(Role::MultilineTextInput).label_contains("Type LaTeX");
+    // Buttons named `label`: the ribbon's Insert tab, then the dialog's.
+    let button = |label: &'static str| egui_kittest::kittest::by().role(Role::Button).label(label);
+    let type_into_field = |h: &mut egui_kittest::Harness<'_, SlideApp>, text: &str| {
+        h.get(field()).focus();
+        h.run_steps(1);
+        h.key_combination_modifiers(Modifiers::COMMAND, &[Key::A]);
+        h.get(field()).type_text(text);
+        h.run_steps(2);
+    };
+
+    h.state_mut().run("app.dialog", json!({"id": "equation"})).unwrap();
+    h.run_steps(2);
+    // A step with more premises than there are is reported, and the dialog stays open.
+    type_into_field(&mut h, r"\hypo{A}\infer2{B}");
+    h.get_all(button("Insert")).last().unwrap().click();
+    h.run_steps(2);
+    assert_eq!(groups(h.state()), 0);
+    assert_eq!(h.get_all(button("Insert")).count(), 2, "the dialog stays open on an error");
+
+    let proof = r"\hypo{A}\hypo{A \to B}\infer2[MP]{B}";
+    type_into_field(&mut h, proof);
+    h.get_all(button("Insert")).last().unwrap().click();
+    h.run_steps(3);
+    assert_eq!(groups(h.state()), 1);
+    assert_eq!(h.get_all(button("Insert")).count(), 1, "the dialog closed");
+    assert_eq!(h.state_mut().run("latex.get", json!({})).unwrap()["latex"].as_str(), Some(proof));
+
+    // Opened on the proof: its LaTeX, and Update instead of Insert.
+    h.state_mut().run("app.dialog", json!({"id": "equation"})).unwrap();
+    h.run_steps(2);
+    assert_eq!(h.get(field()).value().as_deref(), Some(proof));
+    let longer = r"\hypo{A}\hypo{A \to B}\infer2[MP]{B}\infer1[$\to$I]{(A \to B) \to B}";
+    type_into_field(&mut h, longer);
+    h.get(button("Update")).click();
+    h.run_steps(3);
+    assert_eq!(groups(h.state()), 1);
+    assert_eq!(h.state_mut().run("latex.get", json!({})).unwrap()["latex"].as_str(), Some(longer));
+
+    // Opened on it again with "Change the selected one" unticked, it inserts a second proof and
+    // leaves the first as it is.
+    h.state_mut().run("app.dialog", json!({"id": "equation"})).unwrap();
+    h.run_steps(2);
+    h.get(egui_kittest::kittest::by().role(Role::CheckBox).label("Change the selected one")).click();
+    h.run_steps(2);
+    h.get_all(button("Insert")).last().unwrap().click();
+    h.run_steps(3);
+    assert_eq!(groups(h.state()), 2);
+    let sources: Vec<String> = h.state().session.doc().unwrap().doc.slides[0]
+        .shapes
+        .iter()
+        .flat_map(|s| s.tags.iter().filter(|(n, _)| n == "DECKCRAFT_LATEX").map(|(_, v)| v.clone()))
+        .collect();
+    assert_eq!(sources, vec![longer.to_string(), longer.to_string()]);
+}

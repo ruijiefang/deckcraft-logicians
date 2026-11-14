@@ -28,6 +28,7 @@ pub mod spell;
 pub mod templates;
 pub mod thesaurus;
 pub mod tools;
+pub mod typeset;
 
 use std::sync::Arc;
 

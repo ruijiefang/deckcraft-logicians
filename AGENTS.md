@@ -161,14 +161,17 @@ People trust DeckCraft with their talks; a crash loses work. **This outranks fea
 | Layer | Crates |
 |---|---|
 | L0 | `geom` (units, transforms, preset shapes), `color` |
-| L1 | `model` (presentation, masters, layouts, slides, shapes, text, themes, inheritance, text edit ops) |
-| L2 | `fonts`, `text` (layout), |
-| L3 | `render` (vello_cpu) |
-| L4 | `format` (.deckcraft), `pptx` |
+| L1 | `model` (presentation, masters, layouts, slides, shapes, text, themes, inheritance, text edit ops), `fonts` |
+| L2 | `text` (layout), `anim` (timeline, show state, transitions, Morph), `format` (.deckcraft), `media` |
+| L3 | `render` (vello_cpu), `pptx` |
+| L4 | `pdf` (export through `craft-pdf`) |
 | L5 | `engine` (session, history, commands, tools, keys, sample) |
-| L6 | `mcp` |
-| L7 | `ui-egui` (swappable; nothing below depends on egui/eframe/winit/rfd) |
-| apps | `deckcraft` (desktop), `deckcraft-cli`, `deckcraft-web` |
+| L6 | `ui-egui` (swappable; nothing below L6 depends on egui/eframe/winit/rfd), `mcp` |
+| apps | `deckcraft` (desktop), `deckcraft-cli`, `deckcraft-web`, `xtask` (exempt from layering) |
+
+`TABLE` in `xtask/src/layers.rs` is authoritative and `cargo xtask layers` enforces it: a crate
+may depend only on strictly lower layers (same-layer dependencies fail; `DEV_EXCEPTIONS` allows a
+few upward dev-dependencies), and a new workspace crate must be added to `TABLE`. `docs/architecture.md` describes each crate.
 
 - **Everything is a command** (`crates/engine/src/cmd/*`): id, label, ribbon/menu place,
   shortcut, params doc, `enabled`, `run`, plus tests. Ids follow PowerPoint's ribbon and menus
@@ -181,8 +184,23 @@ People trust DeckCraft with their talks; a crash loses work. **This outranks fea
 
 ## 5. Quality gates (before every commit)
 
-`cargo xtask ci` = fmt check, clippy `-D warnings`, tests (nextest when installed) and doctests, layering check, asset check, wasm
+`cargo xtask ci` = fmt check, `pdf-deps` check, clippy `-D warnings`, tests (nextest when installed) and doctests, layering check, asset check, wasm
 check. Commit after each landed arc with a task id in the message (`M1.2: smart guides`).
+
+- Each step also runs alone: `cargo xtask test | layers | assets | wasm | pdf-deps`; `cargo xtask`
+  with no argument lists the others (`stats`, `bench`, `parity`, `ico`).
+- One crate or one test: `cargo test -p deckcraft-<crate> [--lib] <name_filter>` (or
+  `cargo nextest run -p deckcraft-<crate> <filter>`). `.config/nextest.toml` requires nextest
+  0.9.150 or newer; without nextest, `cargo xtask test` falls back to `cargo test`. nextest skips
+  doctests, so run `cargo test --doc -p deckcraft-<crate>` for those.
+- Plain `cargo build`/`cargo test` cover only `default-members`, which leaves out
+  `deckcraft-web` and `xtask`; `cargo xtask test` uses `--workspace`. The web app builds with
+  `trunk build --release` from `apps/deckcraft-web`.
+- On Linux the `deckcraft` desktop app (and so default or `--workspace` builds) needs the ALSA
+  headers (`libasound2-dev` / `alsa-lib-devel`), or it stops at `alsa-sys`; `-p` builds of the
+  library crates and `deckcraft-cli` do not. Without a `../craft-fonts` checkout, local builds fall back to system fonts.
+- `clippy.toml` forbids `egui::ComboBox`; use `craft_ui::ComboBox`.
+
 New workspace crates include `workspace = true` under `[lints]` in `Cargo.toml`. Production crate roots
 declare the crate-level lint attributes before modules; crate-level `//!` documentation may precede them.
 
