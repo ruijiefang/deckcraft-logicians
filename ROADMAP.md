@@ -2,7 +2,7 @@
 
 **Stage: alpha** · next: beta, ~20 points and ~120–210 h away
 
-> **Last reviewed:** 2026-11-04 · **Last updated:** 2026-11-14 · **Change:** trivial (progress log: the README tutorial for LaTeX equations and proof trees; previous: trivial (progress log: the Proof Tree builder; previous: trivial (progress log: LaTeX equations and proof trees; equations checklist row M → P; previous: trivial (slide-list entries with missing relationships are reported as lost slides and open as repaired copies; the Opus decoder and the Ogg, MP4 and Matroska demuxers come from craft-libs; parity scores unchanged)))) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
+> **Last reviewed:** 2026-11-04 · **Last updated:** 2026-11-14 · **Change:** trivial (progress log: commutative diagrams (tikz-cd) and their editor; known limitations of typeset LaTeX; previous: trivial (progress log: the README tutorial for LaTeX equations and proof trees; previous: trivial (progress log: the Proof Tree builder; previous: trivial (progress log: LaTeX equations and proof trees; equations checklist row M → P; previous: trivial (slide-list entries with missing relationships are reported as lost slides and open as repaired copies; the Opus decoder and the Ogg, MP4 and Matroska demuxers come from craft-libs; parity scores unchanged))))) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 > **Last reviewed:** 2026-11-02 · **Last updated:** 2026-11-03 · **Change:** trivial (progress log: web `?host=parent` bridge opens and saves through a same-origin framing page; scores unchanged) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 
 > **Last reviewed:** 2026-11-02 · **Last updated:** 2026-11-03 · **Change:** trivial (community PR wave 10: PPTX and native saves keep table cell centred anchoring, text overflow, compatible line spacing, normalised character height, Thai distributed alignment, RTL table direction, alternate run language and reflection transforms; imported effects placed by parent time-node delays; Reuse Slides fits the destination size and brings custom table styles; deleted slides leave custom shows; merged shapes drop their animations; Compress Pictures measures grouped pictures at displayed size; parity scores unchanged) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
@@ -105,6 +105,30 @@ EMF/SVG pictures, the data-loss and startup-crash bugs (#60, #40, #59) and the b
 | Undo and clipboard | 100% | ~75% | 3–5 | [ui-parity](docs/ui-parity.md) |
 | Files (commands; formats above) | 75% | ~50% | in file formats | [file formats](docs/file-format-parity.md) |
 
+### Typeset LaTeX: known limitations
+
+Formulas, proof trees and commutative diagrams (part of Text) are typeset by DeckCraft itself.
+The [README's tutorial](README.md#limitations) lists every limitation; the main ones:
+
+- **Needs the next craft-libs update:** amssymb's names (`\vDash`, `\nvdash`, `\Box`, `\land`,
+  `\lrcorner` for pullback corners…) and `\underset` over a function name come with craft-math
+  changes that are on a local craft-libs branch, not yet in DeckCraft's pinned craft-libs.
+- **Formulas are one line:** no stacked fractions, `cases` or `pmatrix`. Office Math equations are
+  drawn as their linear text in DeckCraft.
+- **Diagrams are drawn by DeckCraft:** spacing and tips follow tikz-cd's manual and its measured
+  output, in Liberation Serif rather than Computer Modern. Not drawn, but kept in the LaTeX:
+  `sloped` labels, label anchors, `start`/`end anchor`, coordinate shifts, `in`/`out` angles,
+  TikZ arrow-tip specs and colour mixes. Arrows between arrows meet the middles of the arrows they
+  join. Loops go in four directions. Backgrounds behind labels and crossings use the slide's
+  background colour. Squiggly arrows need `decorations.pathmorphing` in the paper's preamble.
+  quiver's triple arrows are drawn double and its curve heights approximated; share links,
+  `\xymatrix` and `{CD}` aren't read.
+- **The diagram editor:** it edits an arrow's first label, colours an arrow with its labels,
+  doesn't edit row and column gaps, and rewrites the LaTeX in its own layout (comments and cell
+  names go).
+- **Limits:** 20,000 characters of LaTeX; proofs of 2,000 steps and 160 levels; diagrams of 64 × 64
+  cells and 1,000 arrows, nested 8 deep.
+
 ## Languages
 
 English only today; no string catalog yet (Ukrainian is in review as PR #34). Detail:
@@ -154,6 +178,7 @@ app's JSON control channel (`deckcraft --control PORT`).
 
 | Date | What landed |
 |---|---|
+| 2026-11-14 | Insert ▸ Commutative Diagram: an editor that draws category-theory diagrams on a grid (objects by click, arrows by drag, arrows between arrows; tails, lines, heads, curve, offset, labels, colour and crossing over set beside the picture; templates; a tikz-cd pane). `insert.latex` reads tikz-cd (hand-written or quiver's export) and draws it with tikz-cd's spacing and tips; the LaTeX it writes compiles with `\usepackage{tikz-cd}`; README tutorial section |
 | 2026-11-14 | README: a tutorial for LaTeX equations and proof trees, with screenshots. Typeset formulas: a `¬`, digit or symbol after a space no longer takes the fallback font of the symbol before it; `\underset{x}{\min}` is spaced as an operator |
 | 2026-11-14 | Equations: Insert ▸ Equation while typing puts the equation in the text at the cursor; resizing LaTeX (by its handles, Shape Format ▸ Size or Size and Position) scales its text, set again to fill the box |
 | 2026-11-14 | Insert ▸ Proof Tree: a builder that edits ebproof proof trees on their picture (add, remove, move and drag steps; rule kinds and labels; templates; symbols; copy and paste; undo; the LaTeX pane) and inserts or updates them through `insert.latex` / `latex.set`; double-clicking a proof opens it there. The ebproof it writes compiles with ebproof 2.1.1 |
@@ -346,6 +371,7 @@ app's JSON control channel (`deckcraft --control PORT`).
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-14 | trivial | Progress log: commutative diagrams (tikz-cd) and their editor; known limitations of typeset LaTeX listed under Features; parity scores unchanged |
 | 2026-11-14 | trivial | Progress log: the README tutorial for LaTeX equations and proof trees; parity scores unchanged |
 | 2026-11-14 | trivial | Progress log: the Proof Tree builder; parity scores unchanged |
 | 2026-11-14 | trivial | Progress log: LaTeX equations, arrays and proof trees; the equations checklist row moves M → P |

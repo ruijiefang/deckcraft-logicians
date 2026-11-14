@@ -58,7 +58,7 @@
 <p align="center">
   <a href="#what-works-today">What works</a> ·
   <a href="#getting-started">Getting started</a> ·
-  <a href="#tutorial-latex-equations-and-proof-trees">LaTeX and proof trees</a> ·
+  <a href="#tutorial-latex-equations-proof-trees-and-commutative-diagrams">LaTeX and diagrams</a> ·
   <a href="#agents-cli-and-mcp">Agents, CLI and MCP</a> ·
   <a href="#roadmap">Roadmap</a> ·
   <a href="#downloads">Downloads</a> ·
@@ -83,8 +83,9 @@ Today it can:
 - **Add content**: pictures with crop and corrections, tables with styles, charts, SmartArt basics,
   audio and video (MP3, AAC, FLAC, ALAC, Ogg, Opus, WAV, AIFF; H.264, HEVC, VP9, AV1).
 - **Typeset math and logic**: LaTeX formulas, arrays and proof trees (ebproof, bussproofs,
-  mathpartir, proof.sty), equations inside a line of text, and a visual Proof Tree builder (see the
-  [tutorial](#tutorial-latex-equations-and-proof-trees)).
+  mathpartir, proof.sty), equations inside a line of text, a visual Proof Tree builder, and
+  commutative diagrams (tikz-cd) drawn in a grid editor (see the
+  [tutorial](#tutorial-latex-equations-proof-trees-and-commutative-diagrams)).
 - **Present**: transitions (including Morph), entrance/emphasis/exit and motion-path animations,
   by-paragraph builds, full-screen slide show, presenter view, pen, rehearse timings, media playback.
 - **Exchange files**: open and save .pptx presentations, export PDF (slides, notes pages, handouts
@@ -156,16 +157,16 @@ crashed survives the next start. The file stops growing at 16 MiB. `--version` w
 The logger is `apps/deckcraft/src/logging.rs`; the realtime audio callback does not log. The web
 app logs to the browser console instead.
 
-## Tutorial: LaTeX equations and proof trees
+## Tutorial: LaTeX equations, proof trees and commutative diagrams
 
-DeckCraft sets LaTeX itself: formulas, arrays and tables, aligned derivations and proof trees
-become ordinary slide shapes (text boxes and rules in a group). They look the same in DeckCraft,
+DeckCraft sets LaTeX itself: formulas, arrays and tables, aligned derivations, proof trees and
+commutative diagrams become ordinary slide shapes (text boxes, rules and arrows in a group). They look the same in DeckCraft,
 in exported PDFs and in PowerPoint, and they keep their LaTeX, so you can open them again and
 change them. This tutorial walks through each part. Shortcuts are written with Ctrl; on macOS use ⌘.
 
 <p align="center">
-  <img alt="The Insert tab with Equation, Proof Tree and Symbol side by side" src="docs/images/latex-insert-tab.png" width="900"><br>
-  <sub>Everything starts on the Insert tab: <b>Equation</b> and <b>Proof Tree</b></sub>
+  <img alt="The Insert tab with Equation, Proof Tree, Commutative Diagram and Symbol side by side" src="docs/images/latex-insert-tab.png" width="900"><br>
+  <sub>Everything starts on the Insert tab: <b>Equation</b>, <b>Proof Tree</b> and <b>Commutative Diagram</b></sub>
 </p>
 
 ### 1. Insert a formula
@@ -350,8 +351,9 @@ and says what it can't keep).
 
 - **Double-click** a typeset formula or array to reopen it in the Equation dialog, with **Change
   the selected one** ticked so **Update** replaces it in place (untick it to insert a new copy).
-  Double-click a proof tree to open it in the Proof Tree builder; from the Equation dialog,
-  **Open in Proof Tree builder** does the same. Each change is one step of the deck's undo.
+  Double-click a proof tree to open it in the Proof Tree builder, and a diagram to open it in the
+  Commutative Diagram editor; from the Equation dialog, **Open in Proof Tree builder** and **Open
+  in diagram editor** do the same. Each change is one step of the deck's undo.
 - **Resize** a typeset shape with a corner handle. It keeps its proportions and is set again at the
   new size, so the text and rules stay sharp rather than stretched, and the new size is kept for
   the next edit.
@@ -360,7 +362,92 @@ and says what it can't keep).
   <img alt="The same proof at 14 pt and, dragged larger, set again at about 49 pt" src="docs/images/latex-resize.png" width="900">
 </p>
 
-### 6. From scripts and agents
+### 6. Draw commutative diagrams
+
+**Insert ▸ Commutative Diagram** opens an editor for the diagrams of category theory: objects on a
+grid and arrows between them, in the manner of quiver. DeckCraft draws the diagram itself,
+following tikz-cd's spacing and arrow tips, so no TeX installation is needed. It keeps the
+diagram as tikz-cd LaTeX, which compiles in your paper with `\usepackage{tikz-cd}`.
+
+<p align="center">
+  <img alt="The Commutative Diagram editor: a pullback square on its grid with the hooked arrow f selected, and the side panel with its label, label side, start, line and end pictures, curve, offset, shortening and crossing over" src="docs/images/cd-editor.png" width="900">
+</p>
+
+On the grid:
+
+- **Add an object**: click an empty cell. Its label starts as `\bullet` and is already selected,
+  so type to replace it; click the next empty cell for the next object.
+- **Add an arrow**: drag from one object to another. Drop it on an empty cell to add the object
+  there too, back on the same object for a loop, or on an arrow for an arrow between arrows (a
+  2-cell, drawn double, like a natural transformation).
+- **Select**: click (Shift-click adds), or drag a box around several. Double-click an object or an
+  arrow to type its label.
+- **Move**: Alt-drag objects (or Alt+arrow keys); their arrows follow.
+- **Shape an arrow**: drag the round handle in the middle of a selected arrow sideways to bend it,
+  and drag its label along it or across to its other side.
+
+What the side panel sets depends on the selection:
+
+| Selected | You set |
+|---|---|
+| Nothing | Row and column spacing: tikz-cd's tiny, small, scriptsize, normal, large and huge, or a length in ems |
+| An object | Its label (LaTeX, with a strip of common symbols: ∘ × ⊗ ≅ ⊣ ⊥ ∃! 𝒞 α…), a frame (none, box, circle) and a colour |
+| An arrow | Its label, the label's side (left or right of the arrow, on it over a patch of background, or on it with nothing behind) and its place along the arrow; how it starts (nothing, ↣, a hook either way, ↦, an arrowhead), its line (solid, dashed, dotted, squiggly, double, or none for a label only) and how it ends (arrowhead, ↠, a harpoon either way, nothing), each picked from a picture of it; curve; offset (for parallel arrows); shortening at either end; width; colour; crossing over; and a loop's direction |
+
+Several arrows or objects selected change together. The toolbar has **Undo**/**Redo**,
+**Copy**/**Cut**/**Paste** (pasting at the selected cell; tikz-cd text from the clipboard pastes
+too), **Delete**, **Reverse**, **Flip ↔**, **Flip ↕**, **Rotate**, **Corner ⌟** (marks the
+selected object as a pullback or pushout corner), **Templates**, zoom, and the **Size** and
+**Font** the diagram is set in. The templates are a commutative square, triangle, pullback,
+pushout, product, coproduct, equalizer, span, cospan, adjunction, natural transformation, short
+exact sequence, isomorphism and endomorphism.
+
+| Keys | Does |
+|---|---|
+| Arrow keys | Move between cells (selecting the object there) |
+| Alt+arrow keys | Move the selected objects a cell |
+| Enter or F2 | Type the selected object's or arrow's label; on an empty cell, add an object |
+| Delete | Delete the selection (and the arrows reaching it) |
+| Ctrl+A, Ctrl+C / X / V | Select everything; copy, cut, paste |
+| Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y | Undo, redo |
+| Esc | In a label: put it back as it was. Then: clear the selection. Then: close (asking first if anything changed) |
+| Ctrl+Enter | Insert or Update, and close |
+
+The **LaTeX (tikz-cd)** pane shows what the editor writes, and edits both ways: paste a diagram
+from a paper, or from quiver's LaTeX export, and the picture follows. **Copy LaTeX** puts it on the
+clipboard. The pullback above is:
+
+```latex
+\begin{tikzcd}
+	P \arrow[r, "p_2"] \arrow[d, "p_1"'] \arrow[dr, phantom, "\lrcorner", very near start] & B \arrow[d, two heads, "g"] \\
+	A \arrow[r, hook, "f"'] & C
+\end{tikzcd}
+```
+
+<p align="center">
+  <img alt="A slide of four diagrams: a pullback with a hook and an epimorphism, a natural transformation between two functors, a diagram with every kind of arrow, and an adjunction" src="docs/images/cd-diagrams.png" width="900">
+</p>
+
+You can also type or paste tikz-cd straight into **Insert ▸ Equation**. DeckCraft reads:
+
+- `\arrow[…]` and `\ar[…]`, the older `\arrow{dr}{f}` form and the `\rar`-style shortcuts;
+- targets by direction (`r`, `dl`, `uu`) or by `from=`/`to=` with a cell (`2-1`) or a name given
+  by `|[alias=…]|`, and 2-cells reaching arrows by the name of a label node (`""{name=U}`);
+- labels `"f"`, `"f"'` (other side), `"f" description`, `"f" marking`, `near start`, `pos=0.3`,
+  `"f"{text=red}`;
+- the arrow styles in tikz-cd's manual (`hook`, `hook'`, `tail`, `two heads`, `maps to`,
+  `harpoon`, `Rightarrow`, `Leftrightarrow`, `equal`, `dashed`, `dotted`, `squiggly`, `phantom`,
+  `hookrightarrow`, `twoheadleftarrow`…), `bend left/right`, `shift left/right`, `shorten`,
+  `line width` and TikZ's `thin`…`ultra thick`, colours (`red`, `{rgb,255:red,…}`),
+  `crossing over`, `loop above`/`right`/`below`/`left`;
+- cell frames (`|[draw]|`, `|[draw, circle]|`), `row sep`, `column sep`, `sep`, `\\[2em]`,
+  `&[1em]` and `ampersand replacement`.
+
+Options DeckCraft doesn't draw are kept and written back. Squiggly arrows need
+`\usetikzlibrary{decorations.pathmorphing}` in your preamble; the LaTeX says so in a comment, and
+the editor in its footer.
+
+### 7. From scripts and agents
 
 The same features are commands, so `deckcraft-cli`, the control channel and MCP agents use them
 too:
@@ -375,27 +462,88 @@ deckcraft-cli run \
 
 | Command | Parameters | Does |
 |---|---|---|
-| `insert.latex` | `latex`, `rect?` (x and y place it), `size?` (24), `font?` (Liberation Serif; `""` for the theme's) | Typesets a formula, grid or proof; returns its `id` and `kind` |
+| `insert.latex` | `latex`, `rect?` (x and y place it), `size?` (24), `font?` (Liberation Serif; `""` for the theme's) | Typesets a formula, grid, proof or tikz-cd diagram; returns its `id` and `kind` |
 | `insert.equation` | `latex`, `rect?`, `size?` | Inserts an Office equation; while text is being edited, inline at the cursor |
 | `latex.get` | `id?` | The selected LaTeX shape's `latex`, `kind`, `size` and `font` |
 | `latex.set` | `latex`, `id?`, `size?`, `font?` | Sets a LaTeX shape again in place, or rewrites an equation |
 
+A diagram is the same command with tikz-cd:
+
+```sh
+deckcraft-cli run \
+  --cmd 'insert.latex={"latex":"\\begin{tikzcd} A \\arrow[r, \"f\"] \\arrow[d, hook] & B \\arrow[d, two heads] \\\\ C \\arrow[r, \"g\"] & D \\end{tikzcd}","size":28}' \
+  --export square.png
+```
+
 `deckcraft-cli describe insert.latex` prints the full parameter description.
 
 ### Limitations
+
+**All typeset LaTeX** (formulas, arrays, proof trees and diagrams):
+
+- It is set again from its LaTeX whenever it is edited or resized. Changes made to its pieces
+  (in DeckCraft after ungrouping, or in PowerPoint) are replaced at that point.
+- amssymb's names (`\vDash`, `\Vdash`, `\nvdash`, `\Box`, `\Diamond`, `\land`, `\lor`,
+  `\lrcorner` and many relations) and `\underset` over a function name
+  (`\underset{x}{\min} f(x)`) need the craft-math in DeckCraft's next craft-libs update. A build
+  against an older craft-libs shows those names as written.
+- Symbols Liberation Serif doesn't have (⊢, ⊨, ∧, script and blackboard letters such as 𝒞 and ℕ)
+  come from fallback fonts. Which installed font draws them can differ between machines. Choose
+  another font with the **Font** field or the `font` parameter.
+- A source is limited to 20,000 characters.
+
+**Formulas and equations:**
 
 - A formula is set on one line: `\frac{a}{b}` reads `a/b`, roots use √ and ∛, `\overset`,
   `\underset` and `\stackrel` sit as superscripts and subscripts, and matrices are written
   row by row. Stacked fractions, big delimiters and environments such as `cases` and `pmatrix`
   are not laid out in two dimensions yet.
 - Office equations are drawn in their linear form inside DeckCraft. PowerPoint shows them in full.
-- amssymb's names (`\vDash`, `\Vdash`, `\nvdash`, `\Box`, `\Diamond`, `\land`, `\lor` and many
-  relations) and `\underset` over a function name (`\underset{x}{\min} f(x)`) need the craft-math
-  in DeckCraft's next craft-libs update. A build against an older craft-libs shows those names as
-  written.
-- Symbols Liberation Serif doesn't have (such as ⊢, ⊨, ∧) come from DeckCraft's fallback fonts.
-  Choose another font with the builder's **Font** field or the `font` parameter.
-- A source is limited to 20,000 characters, and a proof to 2,000 steps and 160 levels.
+- An inline equation is changed through its text box (select the box, then **Insert ▸ Equation**),
+  which changes the box's first equation.
+
+**Proof trees:** a proof has at most 2,000 steps and 160 levels. The builder writes ebproof, so a
+proof written in bussproofs, mathpartir or proof.sty is rewritten in ebproof when you update it from
+the builder, and dotted rules become dashed (ebproof has none).
+
+**Commutative diagrams:**
+
+- DeckCraft draws the diagram itself. Spacing, arrow tips and label placement follow tikz-cd's
+  manual and its measured output, but objects are set in Liberation Serif rather than Computer
+  Modern, so widths differ a little. The height of each object is estimated, not measured from its
+  glyphs. Objects and labels are formulas, so the one-line limit above applies inside them.
+- Read, kept in the LaTeX, but not drawn: `sloped` labels and labels placed with `above`, `below`,
+  `left` or `right`; `start anchor`/`end anchor`; `xshift`, `yshift` and `shift={…}`; `out`, `in`,
+  `looseness` and `min distance`; `dash pattern`; TikZ arrow-tip specifications (`->`,
+  `-{Stealth}`) and `arrow style`; colour mixes such as `red!50`; `cells`, `arrows`, `labels`,
+  `cramped` and `math mode`; and cell options other than `draw`, `circle`, a colour and `alias`.
+  Such arrows are drawn with tikz-cd's defaults.
+- Only tikz-cd's named arrow styles are drawn. On a double line only its own tips are drawn (an
+  arrowhead, a bar or none at either end); other tips on a double line are drawn as on a single
+  line.
+- An arrow between arrows starts and ends at the middle of the arrows it joins (the `pos` of a
+  named label node isn't followed).
+- Loops go above, right, below or left of their object; bending or shifting a loop is ignored.
+- Labels on the arrow (`description`) and the gaps of `crossing over` are filled with the slide's
+  background colour, so on a picture or gradient background they show as a patch.
+- Squiggly arrows need `\usetikzlibrary{decorations.pathmorphing}` in your preamble; without it
+  tikz-cd draws them straight.
+- From quiver: triple arrows (⇛, from `quiver.sty`) are drawn double, `curve={height=…}` becomes
+  the nearest `bend`, and `between={…}{…}` is kept but not drawn. Share links aren't read; paste
+  quiver's LaTeX export instead.
+- Not read as diagrams: `\xymatrix`, amscd's `{CD}`, and every `tikzcd` after the first in one
+  source.
+- A diagram has at most 64 rows, 64 columns and 1,000 arrows; arrows between arrows nest at most
+  8 deep; a label or object has at most 2,000 characters.
+- The editor:
+  - It edits an arrow's first label; any others are drawn, kept and changed in the LaTeX pane.
+  - **Colour** colours an arrow together with its labels. The LaTeX can colour them separately.
+  - Row and column gaps written `\\[2em]` or `&[1em]` are kept but can't be changed in the
+    editor, and **Flip** and **Rotate** drop them.
+  - It writes the LaTeX in its own layout. Comments, spacing, cell names (`alias`) and the order of
+    the arrows aren't kept: arrows are written after the objects they start at, except in a
+    diagram with `crossing over`, whose order is kept because it decides what crosses what.
+  - Labels are typed in the side panel, not on the picture.
 
 ## Agents, CLI and MCP
 

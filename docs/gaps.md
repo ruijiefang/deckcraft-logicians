@@ -1,6 +1,6 @@
 # Where DeckCraft falls short of PowerPoint
 
-> **Last reviewed:** 2026-10-30 · **Last updated:** 2026-11-14 · **Change:** trivial (equations: typeset formulas are one line, `\underset` over a function name waits on the craft-libs pin; previous: trivial (LaTeX in Insert ▸ Equation: Office Math equations and DeckCraft-typeset formulas, arrays and proof trees; the equations gap stays open for 2-D layout and an editor; previous: trivial (workflow-breaking regression fixed: Ctrl+C/X/V use the system clipboard again; #1414 to re-test on Windows; previous: trivial, run alternate language and reflection transforms survive saves; reused slide contents scale to the destination, picker thumbnails remain a gap; previous: trivial (locked No Fill and no-outline click-through regression coverage added; No Fill hit-testing follows resolved fill instead of the presence of a style (#1621); scores unchanged)))) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
+> **Last reviewed:** 2026-10-30 · **Last updated:** 2026-11-14 · **Change:** trivial (equations: commutative diagrams in tikz-cd and their editor; previous: trivial (equations: typeset formulas are one line, `\underset` over a function name waits on the craft-libs pin; previous: trivial (LaTeX in Insert ▸ Equation: Office Math equations and DeckCraft-typeset formulas, arrays and proof trees; the equations gap stays open for 2-D layout and an editor; previous: trivial (workflow-breaking regression fixed: Ctrl+C/X/V use the system clipboard again; #1414 to re-test on Windows; previous: trivial, run alternate language and reflection transforms survive saves; reused slide contents scale to the destination, picker thumbnails remain a gap; previous: trivial (locked No Fill and no-outline click-through regression coverage added; No Fill hit-testing follows resolved fill instead of the presence of a style (#1621); scores unchanged))))) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 
 Every known shortfall, one entry each, ranked by how much it stops someone who presents with
 PowerPoint from switching. This is the work list: pick from the top. Numbers are summarized in
@@ -282,7 +282,8 @@ and starts at that effect. The pane has an advanced timeline with draggable bars
   Math equation PowerPoint edits as one, and `insert.latex` typesets formulas, arrays and tables
   with their rules, `align`/`gather` lines and proof trees (ebproof, bussproofs, mathpartir,
   proof.sty) as text boxes and lines that look the same in DeckCraft, PDF and PowerPoint; Insert ▸
-  Proof Tree builds and edits those proofs step by step on their picture. DeckCraft
+  Proof Tree builds and edits those proofs step by step on their picture; tikz-cd commutative
+  diagrams are drawn as paths and edited on a grid (Insert ▸ Commutative Diagram). DeckCraft
   still draws an Office Math equation as its linear text (no 2-D fractions, scripts, radicals or
   matrices) and has no structured equation editor; PRs #1891, #1029, #192 and #778 propose one.
   A typeset formula is one line too: `\frac` reads a/b, and `cases` and `pmatrix` aren't laid out.
@@ -378,6 +379,7 @@ Detail in [localization-parity.md](localization-parity.md).
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-14 | trivial | Equations: tikz-cd commutative diagrams drawn as paths, edited on a grid |
 | 2026-11-14 | trivial | Equations: typeset formulas are one line (`\frac`, `cases`, `pmatrix`); `\underset` over a function name waits on the craft-libs pin |
 | 2026-11-14 | trivial | Equations: the Proof Tree builder edits typeset proofs step by step; the entry stays open for 2-D layout of Office Math |
 | 2026-11-14 | trivial | Equations: LaTeX input as Office Math (`insert.equation`) or typeset by DeckCraft (`insert.latex`: formulas, arrays with rules, proof trees); the entry stays open for 2-D layout of Office Math and an equation editor |
