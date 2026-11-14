@@ -45,6 +45,7 @@ pub(super) fn body(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
         "export" => dlg_export(app, ui, d),
         "replaceFonts" => dlg_replace_fonts(app, ui, d),
         "symbol" => dlg_symbol(app, ui, d),
+        "proofTree" => super::proof_tree::dialog(app, ui, d),
         "equation" => dlg_equation(app, ui, d),
         "pasteSpecial" => dlg_paste_special(app, ui, d),
         "find" => find_dialog(app, ui, d),
@@ -909,6 +910,12 @@ fn dlg_equation(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
         ui.radio_value(&mut kind, "typeset".to_string(), "Typeset by DeckCraft (looks the same in DeckCraft, PDF and PowerPoint)");
         ui.add_enabled_ui(!proof, |ui| ui.radio_value(&mut kind, "equation".to_string(), "Office equation (PowerPoint edits it as an equation)"));
         d.fields.insert("as".into(), kind.clone());
+    }
+    if proof && ui.button("Open in Proof Tree builder").on_hover_text("Edit this proof by its steps").clicked() {
+        let mut next = Dialog::new("proofTree");
+        next.params = json!({"latex": v, "edit": editing});
+        app.dialog = Some(next);
+        return true;
     }
     let ok_label = if editing { "Update" } else { "Insert" };
     ui.weak(format!("Enter starts a new line; {} presses {ok_label}.", crate::ribbon::pretty_shortcut("Cmd+Enter")));

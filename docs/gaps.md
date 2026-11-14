@@ -281,7 +281,8 @@ and starts at that effect. The pane has an advanced timeline with draggable bars
 - **Evidence:** checklist row P. Insert ▸ Equation takes LaTeX: `insert.equation` writes an Office
   Math equation PowerPoint edits as one, and `insert.latex` typesets formulas, arrays and tables
   with their rules, `align`/`gather` lines and proof trees (ebproof, bussproofs, mathpartir,
-  proof.sty) as text boxes and lines that look the same in DeckCraft, PDF and PowerPoint. DeckCraft
+  proof.sty) as text boxes and lines that look the same in DeckCraft, PDF and PowerPoint; Insert ▸
+  Proof Tree builds and edits those proofs step by step on their picture. DeckCraft
   still draws an Office Math equation as its linear text (no 2-D fractions, scripts, radicals or
   matrices) and has no structured equation editor; PRs #1891, #1029, #192 and #778 propose one.
   amssymb's turnstiles (`\vDash`, `\Vdash`, `\nvdash`…), `\Box`, `\Diamond`, `\land`, `\lor` and
@@ -375,6 +376,7 @@ Detail in [localization-parity.md](localization-parity.md).
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-14 | trivial | Equations: the Proof Tree builder edits typeset proofs step by step; the entry stays open for 2-D layout of Office Math |
 | 2026-11-14 | trivial | Equations: LaTeX input as Office Math (`insert.equation`) or typeset by DeckCraft (`insert.latex`: formulas, arrays with rules, proof trees); the entry stays open for 2-D layout of Office Math and an equation editor |
 | 2026-11-02 | trivial | Run alternate-language metadata now survives native and PPTX saves; UI and proofing gaps remain; scores unchanged |
 | 2026-11-02 | trivial | PPTX reflection geometry is retained through native and PPTX resaves; no rendering parity claim |

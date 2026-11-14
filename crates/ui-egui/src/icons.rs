@@ -139,6 +139,7 @@ icons! {
     SlideNumber => "slide-number",
     Object => "object",
     Equation => "equation",
+    ProofTree => "proof-tree",
     Symbol => "symbol",
     Video => "video",
     Audio => "audio",

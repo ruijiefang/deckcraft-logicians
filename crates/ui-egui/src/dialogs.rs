@@ -38,6 +38,7 @@ fn title(id: &str) -> &'static str {
         "hyperlink" => "Insert Hyperlink",
         "setupShow" => "Set Up Slide Show",
         "zoom" => "Zoom",
+        "proofTree" => "Proof Tree",
         "comment" => "New Comment",
         "altText" => "Alt Text",
         "outline" => "Slides from Outline",
@@ -83,10 +84,12 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
     let Some(mut d) = app.dialog.take() else { return };
     let mut open = true;
     let mut close = false;
+    // The Proof Tree builder is a working window: it can be made bigger for a big proof.
+    let builder = d.id == "proofTree";
     let mut window = egui::Window::new(title(&d.id))
         .id(egui::Id::unique(("dialog", d.id.clone())))
         .collapsible(false)
-        .resizable(false)
+        .resizable(builder)
         .anchor(Align2::CENTER_CENTER, vec2(0.0, -40.0))
         .open(&mut open);
     // Two columns of colour rows plus Save must fit the first frame (Theme Colors), as must Save
@@ -95,11 +98,14 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
         window = window.default_size(vec2(760.0, 420.0)).min_width(720.0).min_height(420.0);
     } else if d.id == "themeFonts" {
         window = window.default_size(vec2(460.0, 320.0)).min_width(420.0).min_height(300.0);
+    } else if builder {
+        window = window.default_size(vec2(1040.0, 690.0)).min_width(820.0).min_height(560.0);
     }
     window.show(ctx, |ui| {
         ui.set_min_width(match d.id.as_str() {
             "themeColors" => 700.0,
             "themeFonts" => 400.0,
+            "proofTree" => 800.0,
             _ => 340.0,
         });
         if d.id == "themeColors" {
@@ -109,7 +115,8 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
         }
         close = body(app, ui, &mut d);
     });
-    let escape = ctx.input(|i| i.key_pressed(egui::Key::Escape));
+    // The builder handles Esc itself (it leaves a field first, and asks before discarding).
+    let escape = !builder && ctx.input(|i| i.key_pressed(egui::Key::Escape));
     if open && !close && !escape {
         app.dialog = Some(d);
     } else if !close && d.id == "preferences" {
@@ -123,6 +130,11 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
         let mut back = Dialog::new(id);
         back.params = ret;
         app.dialog = Some(back);
+    }
+    // Every way the builder closes (Insert, Cancel, Esc, the window's ✕, another dialog) drops
+    // its state, so the next one starts from the slide again.
+    if app.dialog.as_ref().is_none_or(|d| d.id != "proofTree") {
+        app.proof_builder = None;
     }
 }
 
@@ -227,6 +239,7 @@ mod language;
 mod paragraph;
 mod photo_album;
 mod preferences;
+mod proof_tree;
 mod size_position;
 mod slide_size;
 mod tabs;
@@ -306,6 +319,7 @@ fn inches_text(v: Option<&Value>) -> String {
 }
 
 pub mod credits;
+pub use proof_tree::Builder as ProofBuilder;
 #[cfg(test)]
 mod font_dialog_tests;
 #[cfg(not(target_arch = "wasm32"))]

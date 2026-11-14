@@ -656,5 +656,5 @@ pub fn template(name: &str) -> Option<Proof> {
 }
 
 #[cfg(test)]
-#[path = "proof_edit_tests.rs"]
+#[path = "tests_proof_edit.rs"]
 mod tests;

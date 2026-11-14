@@ -409,6 +409,13 @@ fn draw_insert_to_design(p: &Pen<'_>, icon: Icon) -> bool {
         I::Equation => {
             p.line_w(&[(18.5, 6.5), (18.0, 4.0), (6.0, 4.0), (12.5, 12.0), (6.0, 20.0), (18.0, 20.0), (18.5, 17.5)], B, 1.15);
         }
+        I::ProofTree => {
+            // Two premises over an inference rule over a conclusion.
+            p.rect((2.5, 3.5, 10.5, 8.5), 1.2, t(B), B);
+            p.rect((13.5, 3.5, 21.5, 8.5), 1.2, t(B), B);
+            p.line_w(&[(2.0, 12.0), (22.0, 12.0)], K, 1.6);
+            p.rect((7.0, 15.5, 17.0, 20.5), 1.2, t(B), B);
+        }
         I::Symbol => p.text("Ω", (12.0, 12.0), 22.0, K),
         I::Video => {
             p.rect((2.0, 6.0, 15.5, 18.0), 2.0, t(B), K);

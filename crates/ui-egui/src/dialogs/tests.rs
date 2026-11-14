@@ -408,7 +408,7 @@ fn equation_dialog_takes_new_lines_and_double_click_reopens_it() {
     assert_eq!(h.get_all(button("Insert")).count(), 1, "Ctrl+Enter inserted and closed the dialog");
     assert_eq!(h.state_mut().run("latex.get", json!({})).unwrap()["latex"].as_str(), Some(two_lines));
 
-    // Double-click a statement of the proof: the dialog opens on its LaTeX, to update it.
+    // Double-click a statement of the proof: the Proof Tree builder opens on it, to update it.
     h.state_mut().run("edit.selectNone", json!({})).ok();
     let g = &made[0];
     let statement = g.children().iter().find(|c| c.text.is_some()).and_then(|c| c.xfrm).unwrap();
@@ -417,6 +417,11 @@ fn equation_dialog_takes_new_lines_and_double_click_reopens_it() {
         deckcraft_engine::PointerEvent { kind: deckcraft_engine::PointerKind::DoubleClick, x, y, mods: Default::default(), tol: 3.0, pressure: None };
     h.state_mut().session.pointer(ev).unwrap();
     h.run_steps(3);
-    assert_eq!(h.get(field()).value().as_deref(), Some(two_lines));
+    assert_eq!(h.state().dialog.as_ref().map(|d| d.id.as_str()), Some("proofTree"));
+    let b = h.state().proof_builder.as_ref().unwrap();
+    assert_eq!(
+        deckcraft_engine::typeset::proof_edit::to_ebproof(&b.forest),
+        "\\begin{prooftree}\n    \\hypo{A}\n  \\infer1[R]{B}\n\\end{prooftree}\n"
+    );
     assert!(h.query(button("Update")).is_some());
 }
