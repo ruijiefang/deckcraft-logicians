@@ -2,7 +2,7 @@
 
 > **Generated:** 2026-10-14 (bullets/numbering remain D after empty-line marker review; summary by `cargo xtask parity`; rows re-scored by the 2026-10-14 community PR wave, duplicate Thesaurus, AutoCorrect, Artistic effects and Corrections rows folded; Preview in editor re-scored 2026-10-13; earlier rows re-scored 2026-10-10 against PowerPoint for Mac 16.113.4; video/animated GIF row re-scored 2026-10-11, #171) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 
-> **Last updated:** 2026-11-14 · Equations row also names tikz-cd commutative diagrams (score unchanged). Previous (2026-11-14): Equations re-scored M → P: LaTeX input as Office Math (`insert.equation`) or typeset formulas, arrays and proof trees (`insert.latex`). Previous (2026-11-03): Community PR wave 10: reflection transforms survive resaves (row stays P, rendering partial); Reuse Slides fits the destination size and brings referenced custom table styles (row stays P, picker has no thumbnails); Compress Pictures measures grouped pictures at displayed size (stays D). Scores unchanged.
+> **Last updated:** 2026-11-15 · Equations row also names algpseudocode algorithms and the Pseudo-code tool (score unchanged). Previous (2026-11-14): Equations row also names tikz-cd commutative diagrams (score unchanged). Previous (2026-11-14): Equations re-scored M → P: LaTeX input as Office Math (`insert.equation`) or typeset formulas, arrays and proof trees (`insert.latex`). Previous (2026-11-03): Community PR wave 10: reflection transforms survive resaves (row stays P, rendering partial); Reuse Slides fits the destination size and brings referenced custom table styles (row stays P, picker has no thumbnails); Compress Pictures measures grouped pictures at displayed size (stays D). Scores unchanged.
 >
 > **Previously (2026-11-02):** Tiled picture fills keep their size in scaled groups and upright tiles (#1693); Picture and texture fill row remains P. Scores unchanged.
 >
@@ -164,7 +164,7 @@ Open P0 items: Contextual tabs (Shape Format, Picture Format, Table Design/Layou
 | Text | AutoCorrect and smart quotes | P2 | P |
 | Text | Thesaurus | P2 | P |
 | Text | Symbols and emoji | P1 | D |
-| Text | Equations (LaTeX as Office Math or typeset by DeckCraft, proof trees, tikz-cd commutative diagrams; Office Math drawn as linear text) | P2 | P |
+| Text | Equations (LaTeX as Office Math or typeset by DeckCraft, proof trees, tikz-cd commutative diagrams, algpseudocode algorithms; Office Math drawn as linear text) | P2 | P |
 | Text | Hyperlinks (URL, slide, email) | P1 | D |
 | Text | Date/time and slide number fields | P1 | D |
 | Text | Right-to-left and complex scripts | P1 | P |
@@ -244,6 +244,7 @@ Open P0 items: Contextual tabs (Shape Format, Picture Format, Table Design/Layou
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-15 | trivial | Equations row: algpseudocode algorithms, written in the Pseudo-code tool; scores unchanged |
 | 2026-11-14 | trivial | Equations row: tikz-cd commutative diagrams, drawn by DeckCraft and edited on a grid; scores unchanged |
 | 2026-11-14 | minor | Equations M → P: LaTeX input as Office Math or as DeckCraft-typeset formulas, arrays and proof trees; Office Math is still drawn as linear text |
 | 2026-11-02 | trivial | Reflection transform/fade serialization retained; its P score stays because rendering remains partial |

@@ -141,6 +141,7 @@ icons! {
     Equation => "equation",
     ProofTree => "proof-tree",
     CommutativeDiagram => "commutative-diagram",
+    Pseudocode => "pseudocode",
     Symbol => "symbol",
     Video => "video",
     Audio => "audio",

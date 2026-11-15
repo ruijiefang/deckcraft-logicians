@@ -233,6 +233,8 @@ pub struct SlideApp {
     pub proof_builder: Option<dialogs::ProofBuilder>,
     /// The Commutative Diagram editor while its window is open.
     pub cd_editor: Option<dialogs::CdEditor>,
+    /// The Pseudo-code tool while its window is open.
+    pub algo_editor: Option<dialogs::AlgoEditor>,
     /// The word looked up in the Thesaurus pane.
     pub thesaurus_query: String,
     pub show: Option<show::Show>,

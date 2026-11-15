@@ -265,6 +265,11 @@ pub(crate) fn layout(a: &Algorithm, style: &Style, measure: Measure, editor: boo
     let mut sets: Vec<Set> = Vec::new();
     for r in all {
         let raw = line_at(a, &r.path).is_some_and(|l| l.kind == Kind::Raw && r.part == Part::Line);
+        // Kept LaTeX (definitions such as `\algrenewcommand`) prints nothing in the paper: it is
+        // shown, gray, only in the editor.
+        if raw && !editor {
+            continue;
+        }
         let src = if raw { line_at(a, &r.path).map(|l| l.text.trim().to_string()).unwrap_or_default() } else { row_text(a, &r).unwrap_or_default() };
         let ghost = (r.ghost || raw).then_some(GHOST);
         let indent = INDENT * em * r.depth as f64;

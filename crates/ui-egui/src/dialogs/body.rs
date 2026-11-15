@@ -47,6 +47,7 @@ pub(super) fn body(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
         "symbol" => dlg_symbol(app, ui, d),
         "proofTree" => super::proof_tree::dialog(app, ui, d),
         "commutativeDiagram" => super::cd_editor::dialog(app, ui, d),
+        "pseudocode" => super::algo_editor::dialog(app, ui, d),
         "equation" => dlg_equation(app, ui, d),
         "pasteSpecial" => dlg_paste_special(app, ui, d),
         "find" => find_dialog(app, ui, d),
@@ -941,13 +942,20 @@ fn dlg_equation(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
         app.dialog = Some(next);
         return true;
     }
+    let algorithm = deckcraft_engine::typeset::algo::is_algorithm(&v);
+    if algorithm && ui.button("Open in Pseudo-code tool").on_hover_text("Edit this algorithm line by line").clicked() {
+        let mut next = Dialog::new("pseudocode");
+        next.params = json!({"latex": v, "edit": editing});
+        app.dialog = Some(next);
+        return true;
+    }
     let ok_label = if editing { "Update" } else { "Insert" };
     ui.weak(format!("Enter starts a new line; {} presses {ok_label}.", crate::ribbon::pretty_shortcut("Cmd+Enter")));
     let (ok, cancel) = buttons_multiline(ui, ok_label);
     if ok && !v.trim().is_empty() {
         let result = if editing {
             app.run("latex.set", json!({"latex": v}))
-        } else if inline || (kind == "equation" && !proof && !deckcraft_engine::typeset::cd::is_diagram(&v)) {
+        } else if inline || (kind == "equation" && !proof && !deckcraft_engine::typeset::cd::is_diagram(&v) && !algorithm) {
             app.run("insert.equation", json!({"latex": v}))
         } else {
             app.run("insert.latex", json!({"latex": v}))

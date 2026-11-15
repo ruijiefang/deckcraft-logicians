@@ -126,6 +126,7 @@ pub(super) fn insert(app: &mut SlideApp, ui: &mut Ui) {
         big(app, ui, Icon::Equation, "Equation", "app.dialog", json!({"id": "equation"}));
         big(app, ui, Icon::ProofTree, "Proof\nTree", "app.dialog", json!({"id": "proofTree"}));
         big(app, ui, Icon::CommutativeDiagram, "Commutative\nDiagram", "app.dialog", json!({"id": "commutativeDiagram"}));
+        big(app, ui, Icon::Pseudocode, "Pseudo-\ncode", "app.dialog", json!({"id": "pseudocode"}));
         big(app, ui, Icon::Symbol, "Symbol", "app.dialog", json!({"id": "symbol"}));
     });
     group(ui, |ui| {

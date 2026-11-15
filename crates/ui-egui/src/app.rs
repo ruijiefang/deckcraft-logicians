@@ -52,6 +52,7 @@ impl SlideApp {
             dialog: None,
             proof_builder: None,
             cd_editor: None,
+            algo_editor: None,
             thesaurus_query: String::new(),
             show: None,
             anim_preview: None,

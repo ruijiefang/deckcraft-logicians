@@ -40,6 +40,7 @@ fn title(id: &str) -> &'static str {
         "zoom" => "Zoom",
         "proofTree" => "Proof Tree",
         "commutativeDiagram" => "Commutative Diagram",
+        "pseudocode" => "Pseudo-code",
         "comment" => "New Comment",
         "altText" => "Alt Text",
         "outline" => "Slides from Outline",
@@ -87,7 +88,7 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
     let mut close = false;
     // The Proof Tree builder and the diagram editor are working windows: they can be made
     // bigger for a big proof or diagram.
-    let builder = d.id == "proofTree" || d.id == "commutativeDiagram";
+    let builder = d.id == "proofTree" || d.id == "commutativeDiagram" || d.id == "pseudocode";
     let mut window = egui::Window::new(title(&d.id))
         .id(egui::Id::unique(("dialog", d.id.clone())))
         .collapsible(false)
@@ -102,6 +103,8 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
         window = window.default_size(vec2(460.0, 320.0)).min_width(420.0).min_height(300.0);
     } else if d.id == "commutativeDiagram" {
         window = window.default_size(vec2(1120.0, 740.0)).min_width(880.0).min_height(580.0);
+    } else if d.id == "pseudocode" {
+        window = window.default_size(vec2(1100.0, 760.0)).min_width(860.0).min_height(560.0);
     } else if builder {
         window = window.default_size(vec2(1040.0, 690.0)).min_width(820.0).min_height(560.0);
     }
@@ -111,6 +114,7 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
             "themeFonts" => 400.0,
             "proofTree" => 800.0,
             "commutativeDiagram" => 860.0,
+            "pseudocode" => 840.0,
             _ => 340.0,
         });
         if d.id == "themeColors" {
@@ -143,6 +147,9 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
     }
     if app.dialog.as_ref().is_none_or(|d| d.id != "commutativeDiagram") {
         app.cd_editor = None;
+    }
+    if app.dialog.as_ref().is_none_or(|d| d.id != "pseudocode") {
+        app.algo_editor = None;
     }
 }
 
@@ -234,6 +241,7 @@ fn text_row(ui: &mut Ui, d: &mut Dialog, label: &str, key: &str) {
 use deckcraft_text::datetime::DATE_KINDS;
 
 mod about;
+mod algo_editor;
 mod alt_text;
 mod body;
 mod cd_editor;
@@ -328,6 +336,7 @@ fn inches_text(v: Option<&Value>) -> String {
 }
 
 pub mod credits;
+pub use algo_editor::Editor as AlgoEditor;
 pub use cd_editor::Editor as CdEditor;
 pub use proof_tree::Builder as ProofBuilder;
 #[cfg(test)]

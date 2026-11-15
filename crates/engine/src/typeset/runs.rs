@@ -280,6 +280,9 @@ impl Flat {
                 self.append(c, look);
             } else if is_space(c) {
                 self.push(c.to_string(), Cls::Space, look);
+            } else if c == '-' {
+                // TeX sets a hyphen in math as the minus sign.
+                self.push("\u{2212}".to_string(), Cls::from(math_class(c)), look);
             } else {
                 let (ch, l) = letter(c, r.sty, r.scr, look);
                 self.push(ch.to_string(), Cls::from(math_class(c)), l);

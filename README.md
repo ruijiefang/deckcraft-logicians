@@ -15,8 +15,9 @@
   DeckCraft Logicians Edition is a modified version of DeckCraft for practitioners of logic,
   mathematics and computer science. Build decks with <strong>typeset LaTeX that knows the symbols of
   logic</strong> (⊢ ⊨ ∀ ∃ ¬ □ ⊥ …), <strong>proof trees</strong> written in ebproof, bussproofs,
-  mathpartir or proof.sty syntax or built step by step in a visual Proof Tree builder, and
-  <strong>commutative diagrams</strong> in tikz-cd drawn on a grid in the manner of quiver. Each
+  mathpartir or proof.sty syntax or built step by step in a visual Proof Tree builder,
+  <strong>commutative diagrams</strong> in tikz-cd drawn on a grid in the manner of quiver, and
+  <strong>pseudo-code</strong> in algpseudocode written line by line in the Pseudo-code tool. Each
   keeps its LaTeX, ready to copy into your paper. As in DeckCraft, you also get themes, layouts,
   shapes, pictures, tables, charts, transitions and animations, .pptx files and full-screen
   presenting, natively on macOS, Windows, Linux and FreeBSD, and in the browser. Every button is
@@ -36,7 +37,7 @@
 > [!NOTE]
 > **DeckCraft Logicians Edition is a modified version of DeckCraft.** It is based on
 > [DeckCraft](https://github.com/storytold/deckcraft) by the ArtCraft team, and adds typeset LaTeX,
-> proof trees and commutative diagrams. It is not made, endorsed or supported by the ArtCraft
+> proof trees, commutative diagrams and pseudo-code. It is not made, endorsed or supported by the ArtCraft
 > team; report its problems here rather than to DeckCraft.
 
 <p align="center">
@@ -46,7 +47,7 @@
 <p align="center">
   <a href="#what-works-today">What works</a> ·
   <a href="#getting-started">Getting started</a> ·
-  <a href="#tutorial-latex-equations-proof-trees-and-commutative-diagrams">LaTeX and diagrams</a> ·
+  <a href="#tutorial-latex-equations-proof-trees-diagrams-and-pseudo-code">LaTeX, diagrams and pseudo-code</a> ·
   <a href="#agents-cli-and-mcp">Agents, CLI and MCP</a> ·
   <a href="#roadmap">Roadmap</a> ·
   <a href="#downloads">Downloads</a> ·
@@ -63,9 +64,11 @@ Today it can:
   and truth tables, aligned derivations, and Office equations, also inside a line of text;
   proof trees in ebproof, bussproofs, mathpartir or proof.sty syntax, and a visual Proof Tree
   builder with templates for natural deduction; commutative diagrams in tikz-cd, with a grid
-  editor for objects, arrows, 2-cells, pullback corners and every tikz-cd arrow style. All of them
-  keep their LaTeX and scale with their box (see the
-  [tutorial](#tutorial-latex-equations-proof-trees-and-commutative-diagrams)).
+  editor for objects, arrows, 2-cells, pullback corners and every tikz-cd arrow style; algorithms
+  in algpseudocode (or the older algorithmic), typed line by line in the Pseudo-code tool with
+  keywords that make their blocks, templates from Euclid to DPLL and resolution. All of them keep
+  their LaTeX and scale with their box (see the
+  [tutorial](#tutorial-latex-equations-proof-trees-diagrams-and-pseudo-code)).
 - **Make decks**: slide masters and eleven layouts with placeholders that inherit position and
   formatting, eight original themes with colour and font schemes, sections, notes, comments,
   headers and footers, custom slide sizes.
@@ -83,7 +86,7 @@ Today it can:
   with selectable text), PNG/JPEG, an animated GIF of the deck and outlines. Unsaved work is kept by AutoRecover.
 - **Automate**: 200+ commands with undo, all scriptable from the CLI, a JSON control channel and an
   MCP server for AI agents, including `insert.latex`, `insert.equation`, `latex.get` and
-  `latex.set` for LaTeX, proofs and diagrams.
+  `latex.set` for LaTeX, proofs, diagrams and algorithms.
 
 <table>
   <tr>
@@ -93,6 +96,10 @@ Today it can:
   <tr>
     <td width="50%"><img alt="The Commutative Diagram editor with a pullback square and an arrow selected" src="docs/images/cd-editor.png"><br><sub>The Commutative Diagram editor</sub></td>
     <td width="50%"><img alt="A slide of commutative diagrams: a pullback, a natural transformation, many kinds of arrow and an adjunction" src="docs/images/cd-diagrams.png"><br><sub>Commutative diagrams on a slide</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img alt="The Pseudo-code tool on Euclid's algorithm with the while line selected" src="docs/images/algo-tool.png"><br><sub>The Pseudo-code tool</sub></td>
+    <td width="50%"><img alt="A slide with binary search and DPLL set as algpseudocode algorithms" src="docs/images/algo-slides.png"><br><sub>Algorithms on a slide</sub></td>
   </tr>
 </table>
 
@@ -124,8 +131,8 @@ cargo run --release -p deckcraft -- --sample            # the app, on the sample
 cargo run --release -p deckcraft-cli -- render --sample --all --scale 1 out/
 ```
 
-Then try **Insert ▸ Equation**, **Insert ▸ Proof Tree** and **Insert ▸ Commutative Diagram**
-(the [tutorial](#tutorial-latex-equations-proof-trees-and-commutative-diagrams) walks through
+Then try **Insert ▸ Equation**, **Insert ▸ Proof Tree**, **Insert ▸ Commutative Diagram** and
+**Insert ▸ Pseudo-code** (the [tutorial](#tutorial-latex-equations-proof-trees-diagrams-and-pseudo-code) walks through
 them).
 
 LaTeX is read by craft-math, from [craft-libs](https://github.com/storytold/craft-libs). The
@@ -179,16 +186,16 @@ crashed survives the next start. The file stops growing at 16 MiB. `--version` w
 The logger is `apps/deckcraft/src/logging.rs`; the realtime audio callback does not log. The web
 app logs to the browser console instead.
 
-## Tutorial: LaTeX equations, proof trees and commutative diagrams
+## Tutorial: LaTeX equations, proof trees, diagrams and pseudo-code
 
-DeckCraft sets LaTeX itself: formulas, arrays and tables, aligned derivations, proof trees and
-commutative diagrams become ordinary slide shapes (text boxes, rules and arrows in a group). They look the same in DeckCraft,
+DeckCraft sets LaTeX itself: formulas, arrays and tables, aligned derivations, proof trees,
+commutative diagrams and algorithms become ordinary slide shapes (text boxes, rules and arrows in a group). They look the same in DeckCraft,
 in exported PDFs and in PowerPoint, and they keep their LaTeX, so you can open them again and
 change them. This tutorial walks through each part. Shortcuts are written with Ctrl; on macOS use ⌘.
 
 <p align="center">
-  <img alt="The Insert tab with Equation, Proof Tree, Commutative Diagram and Symbol side by side" src="docs/images/latex-insert-tab.png" width="900"><br>
-  <sub>Everything starts on the Insert tab: <b>Equation</b>, <b>Proof Tree</b> and <b>Commutative Diagram</b></sub>
+  <img alt="The Insert tab with Equation, Proof Tree, Commutative Diagram, Pseudo-code and Symbol side by side" src="docs/images/latex-insert-tab.png" width="900"><br>
+  <sub>Everything starts on the Insert tab: <b>Equation</b>, <b>Proof Tree</b>, <b>Commutative Diagram</b> and <b>Pseudo-code</b></sub>
 </p>
 
 ### 1. Insert a formula
@@ -373,9 +380,10 @@ and says what it can't keep).
 
 - **Double-click** a typeset formula or array to reopen it in the Equation dialog, with **Change
   the selected one** ticked so **Update** replaces it in place (untick it to insert a new copy).
-  Double-click a proof tree to open it in the Proof Tree builder, and a diagram to open it in the
-  Commutative Diagram editor; from the Equation dialog, **Open in Proof Tree builder** and **Open
-  in diagram editor** do the same. Each change is one step of the deck's undo.
+  Double-click a proof tree to open it in the Proof Tree builder, a diagram to open it in the
+  Commutative Diagram editor, and an algorithm to open it in the Pseudo-code tool; from the
+  Equation dialog, **Open in Proof Tree builder**, **Open in diagram editor** and **Open in
+  Pseudo-code tool** do the same. Each change is one step of the deck's undo.
 - **Resize** a typeset shape with a corner handle. It keeps its proportions and is set again at the
   new size, so the text and rules stay sharp rather than stretched, and the new size is kept for
   the next edit.
@@ -469,7 +477,92 @@ Options DeckCraft doesn't draw are kept and written back. Squiggly arrows need
 `\usetikzlibrary{decorations.pathmorphing}` in your preamble; the LaTeX says so in a comment, and
 the editor in its footer.
 
-### 7. From scripts and agents
+### 7. Write pseudo-code
+
+**Insert ▸ Pseudo-code** opens a tool for algorithms in the style of LaTeX's `algorithmicx`
+package (`algpseudocode`): numbered lines, bold keywords, blocks indented 1.5em a level, `end`
+lines, comments flush right after a ▷, and the `algorithm` float's rules and caption. The left
+pane shows the algorithm as it will be on the slide, and you write in it line by line. The right
+pane has the building blocks and the selected line's details, and the LaTeX pane below shows the
+code. **Insert** (Ctrl+Enter) puts the algorithm on the slide as a figure. It keeps its LaTeX, which
+compiles in your paper with `\usepackage{algorithm}` and `\usepackage{algpseudocode}`.
+
+<p align="center">
+  <img alt="The Pseudo-code tool on Euclid's algorithm: the while line selected, with its add-above and add-below buttons, the building blocks and the line's condition, comment and label at the right" src="docs/images/algo-tool.png" width="900">
+</p>
+
+**Write with the keyboard.** The tool opens on an empty line, ready to type. Text is LaTeX, with
+math in `$…$`. Begin a line with a keyword and it becomes that block:
+
+| Type | Becomes |
+|---|---|
+| `if $x > 0$` | an If with an empty line inside, then `else if …` or `else` on a line inside it adds that part |
+| `while …`, `for …`, `for all …` (or `forall …`) | a loop |
+| `repeat` and `loop` (then Enter) | a repeat–until (its `until` row takes the condition) or a loop |
+| `procedure Name(a, b)`, `function Name(a, b)` | a procedure or function with its parameters |
+| `return …`, `require …`, `ensure …` | a return line, or the input and output lines |
+
+| Key | Does |
+|---|---|
+| Enter | A new line below. On a block's first row, into its empty first line. On an empty last line of a block, out of the block |
+| Tab / Shift+Tab | The line into the block above (as its last line) / out of its block |
+| ↑ / ↓ | Type in the line above / below |
+| Backspace on an empty line | Deletes the line |
+| Esc | Puts the line back as it was; again, deselects; again, closes (asking first when there are changes) |
+| Ctrl+Enter | Inserts (or updates) the algorithm |
+
+So `procedure Euclid(a, b)` ⏎ `$r \gets a \bmod b$` ⏎ `while $r \neq 0$` ⏎ `$a \gets b$` ⏎
+`$b \gets r$` ⏎ `$r \gets a \bmod b$` ⏎ ⏎ `return $b$` writes the whole of Euclid's algorithm.
+
+<p align="center">
+  <img alt="Typing in the Pseudo-code tool: an if inside a while, an else just made by typing else, and the next line being typed in place" src="docs/images/algo-typing.png" width="900">
+</p>
+
+**Or use the mouse.** Click a line to select it, Shift-click to select a range, and double-click
+to type in it. Hover a line for **+** buttons that add a line above or below it, and click under
+the last line to add one at the end. Drag a line (with its block) to move it. With several lines
+selected, a block in the **Add** panel goes around them, so a selected range becomes the body of
+an If or a While. **Else if** and **Else** add a part to the selected If.
+
+The right pane shows the selected line's text, its comment (drawn as `▷ comment` at the right),
+a label for `\ref`, and whether it is numbered (unnumbered lines are `\Statex`). **Unwrap** drops a
+block and keeps its lines. With nothing selected it shows the algorithm's settings:
+
+| Setting | Does |
+|---|---|
+| Caption, Number, Label | The float's caption, its number ("Algorithm 3"; a slide has no counter) and `\label` |
+| Frame | **Ruled** (the `algorithm` float), **Boxed** (`\floatstyle{boxed}`, caption below) or **None** (the lines alone) |
+| Numbers | None, every line, or every *n*th line (`\begin{algorithmic}[n]`) |
+| Show “end” lines | Off writes `\algtext*{EndWhile}` and the rest, as many papers do. Hidden lines stay in the tool, gray |
+| Require/Ensure as Input/Output | Renames them with `\algrenewcommand` |
+| Wrap lines at | Long lines break at that width and hang further in |
+
+The toolbar has undo and redo, cut, copy, paste and duplicate (copied lines also go to the
+clipboard as algpseudocode, and pasted algpseudocode becomes lines), move up and down, indent and
+outdent, zoom, and the **Size** (16 pt by default) and **Font** of the figure. **Templates** starts
+from Euclid's algorithm, binary search, insertion sort, breadth- and depth-first search,
+Dijkstra's algorithm, DPLL, unification or resolution, or adds one below the selection.
+
+The **LaTeX (algpseudocode)** pane edits both ways. Paste an algorithm from a paper into it, or
+straight into **Insert ▸ Equation**. DeckCraft reads:
+
+- algpseudocode's `\State`, `\Statex`, `\If`, `\ElsIf`, `\Else`, `\For`, `\ForAll`, `\While`,
+  `\Repeat`…`\Until`, `\Loop`, `\Procedure`, `\Function`, `\Return`, `\Require`, `\Ensure`,
+  `\Call`, `\Comment` and `\label`;
+- the older `algorithmic` package's uppercase commands (`\STATE`, `\IF`, `\ENDIF`, `\FORALL`,
+  `\REQUIRE`, `\RETURN`, `\PRINT`, `\COMMENT`, `\AND`, `\TRUE`…), written back as algpseudocode;
+- the `algorithm` float's `\caption`, `\label`, placement (`[htb]`) and `\floatstyle{boxed}`;
+  `\algrenewcommand` of the keywords, and `\algtext*{End…}`.
+
+A block without its end is closed where its outer block ends, and the tool says so. Commands it
+doesn't know are kept as lines of LaTeX and written back. The tool shows them gray; the slide
+leaves them out, as LaTeX prints nothing for definitions such as `\algnewcommand`.
+
+<p align="center">
+  <img alt="A slide with two algorithms: binary search with its Require and Ensure lines and an else-if, and DPLL with a comment and subscripted restrictions" src="docs/images/algo-slides.png" width="900">
+</p>
+
+### 8. From scripts and agents
 
 The same features are commands, so `deckcraft-cli`, the control channel and MCP agents use them
 too:
@@ -484,7 +577,7 @@ deckcraft-cli run \
 
 | Command | Parameters | Does |
 |---|---|---|
-| `insert.latex` | `latex`, `rect?` (x and y place it), `size?` (24), `font?` (Liberation Serif; `""` for the theme's) | Typesets a formula, grid, proof or tikz-cd diagram; returns its `id` and `kind` |
+| `insert.latex` | `latex`, `rect?` (x and y place it), `size?` (24; 16 for an algorithm), `font?` (Liberation Serif; `""` for the theme's) | Typesets a formula, grid, proof, tikz-cd diagram or algpseudocode algorithm; returns its `id` and `kind` |
 | `insert.equation` | `latex`, `rect?`, `size?` | Inserts an Office equation; while text is being edited, inline at the cursor |
 | `latex.get` | `id?` | The selected LaTeX shape's `latex`, `kind`, `size` and `font` |
 | `latex.set` | `latex`, `id?`, `size?`, `font?` | Sets a LaTeX shape again in place, or rewrites an equation |
@@ -501,7 +594,7 @@ deckcraft-cli run \
 
 ### Limitations
 
-**All typeset LaTeX** (formulas, arrays, proof trees and diagrams):
+**All typeset LaTeX** (formulas, arrays, proof trees, diagrams and algorithms):
 
 - It is set again from its LaTeX whenever it is edited or resized. Changes made to its pieces
   (in DeckCraft after ungrouping, or in PowerPoint) are replaced at that point.
@@ -566,6 +659,23 @@ the builder, and dotted rules become dashed (ebproof has none).
     the arrows aren't kept: arrows are written after the objects they start at, except in a
     diagram with `crossing over`, whose order is kept because it decides what crosses what.
   - Labels are typed in the side panel, not on the picture.
+
+**Pseudo-code:**
+
+- DeckCraft draws the algorithm itself. Rules, the caption, line spacing, the number gutter,
+  indentation and comments follow algorithmicx's measured output, in Liberation Serif rather than
+  Computer Modern, so widths differ a little. Text and math in a line are set on one line, as
+  formulas are.
+- Only `algpseudocode` and the older `algorithmic` are read. algorithm2e (`\KwIn`, `\eIf`,
+  `\SetAlgoLined`…), `program`, `clrscode` and `listings` aren't, and the first algorithm in a
+  source is the only one read.
+- Blocks defined with `\algdef`, `\algblock` or `\algblockdefx`, algpseudocodex's extras, and
+  other unknown commands are kept and written back but not drawn. Their lines don't indent.
+- `\algstore` and `\algrestore` (an algorithm split over pages) are kept but not followed: the
+  numbers don't continue from the stored part.
+- It writes the LaTeX in its own layout: indentation is redone and `%` comments aren't kept.
+- An algorithm has at most 2,000 lines, blocks nest at most 64 deep, and a line has at most 2,000
+  characters.
 
 ## Agents, CLI and MCP
 
@@ -712,7 +822,7 @@ ALSA headers).
 This edition is based on [DeckCraft](https://github.com/storytold/deckcraft), one of the free,
 open-source Crafting Apps by the ArtCraft team, each written from scratch in Rust. DeckCraft
 itself, its releases and its community are theirs. This edition adds what logicians need on
-their slides (the [tutorial](#tutorial-latex-equations-proof-trees-and-commutative-diagrams)
+their slides (the [tutorial](#tutorial-latex-equations-proof-trees-diagrams-and-pseudo-code)
 covers it) and is maintained separately.
 
 ## License and credits

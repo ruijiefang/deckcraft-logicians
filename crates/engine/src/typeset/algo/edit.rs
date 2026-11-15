@@ -453,7 +453,7 @@ pub const TEMPLATES: &[(&str, &str)] = &[
   \EndWhile
   \If{$\Phi = \emptyset$}
     \State \Return \textbf{true}
-  \ElsIf{$\Box \in \Phi$}
+  \ElsIf{$\Phi$ has an empty clause}
     \State \Return \textbf{false}
   \EndIf
   \State choose a literal $\ell$ in $\Phi$
@@ -490,7 +490,7 @@ pub const TEMPLATES: &[(&str, &str)] = &[
 \Function{Refute}{$S$}
   \Repeat
     \State $N \gets \{ \mathit{res}(C, D) : C, D \in S \} \setminus S$
-    \If{$\Box \in N$}
+    \If{$N$ has the empty clause}
       \State \Return \textbf{true}
     \EndIf
     \State $S \gets S \cup N$

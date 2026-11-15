@@ -364,3 +364,36 @@ fn written_algorithms_compile_with_pdflatex() {
         near.join("\n")
     );
 }
+
+#[test]
+fn kept_latex_lines_show_only_in_the_editor() {
+    let a = alg("\\algstore{part}\n\\State $x$");
+    assert_eq!(a.body[0].kind, Kind::Raw);
+    let text = |editor: bool| -> Vec<String> {
+        super::layout(&a, &style(), &measure, editor)
+            .items
+            .iter()
+            .filter_map(|i| match i {
+                crate::typeset::Item::Text { body, .. } => Some(body.text()),
+                _ => None,
+            })
+            .collect()
+    };
+    assert!(text(true).iter().any(|t| t.contains("algstore")), "the editor shows it");
+    assert!(!text(false).iter().any(|t| t.contains("algstore")), "the paper prints nothing for it");
+    let rows = super::layout(&a, &style(), &measure, true).regions.iter().filter(|r| r.part == RegionPart::Row).count();
+    assert_eq!(rows, super::rows(&a, true).len(), "the editor's rows line up with its regions");
+}
+
+#[test]
+fn templates_use_only_known_commands() {
+    for (name, _) in TEMPLATES {
+        let a = edit::template(name).unwrap();
+        for t in super::layout(&a, &style(), &measure, false).items.iter().filter_map(|i| match i {
+            crate::typeset::Item::Text { body, .. } => Some(body.text()),
+            _ => None,
+        }) {
+            assert!(!t.contains('\\'), "{name}: {t}");
+        }
+    }
+}

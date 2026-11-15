@@ -2,7 +2,7 @@
 
 **Stage: alpha** · next: beta, ~20 points and ~120–210 h away
 
-> **Last reviewed:** 2026-11-04 · **Last updated:** 2026-11-14 · **Change:** trivial (progress log: the Logicians Edition branding; previous: trivial (progress log: commutative diagrams (tikz-cd) and their editor; known limitations of typeset LaTeX; previous: trivial (progress log: the README tutorial for LaTeX equations and proof trees; previous: trivial (progress log: the Proof Tree builder; previous: trivial (progress log: LaTeX equations and proof trees; equations checklist row M → P; previous: trivial (slide-list entries with missing relationships are reported as lost slides and open as repaired copies; the Opus decoder and the Ogg, MP4 and Matroska demuxers come from craft-libs; parity scores unchanged)))))) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
+> **Last reviewed:** 2026-11-04 · **Last updated:** 2026-11-15 · **Change:** trivial (progress log: the Logicians Edition branding; previous: trivial (progress log: the Pseudo-code tool (algpseudocode); its limitations under typeset LaTeX; previous: trivial (progress log: commutative diagrams (tikz-cd) and their editor; known limitations of typeset LaTeX; previous: trivial (progress log: the README tutorial for LaTeX equations and proof trees; previous: trivial (progress log: the Proof Tree builder; previous: trivial (progress log: LaTeX equations and proof trees; equations checklist row M → P; previous: trivial (slide-list entries with missing relationships are reported as lost slides and open as repaired copies; the Opus decoder and the Ogg, MP4 and Matroska demuxers come from craft-libs; parity scores unchanged))))))) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 > **Last reviewed:** 2026-11-02 · **Last updated:** 2026-11-03 · **Change:** trivial (progress log: web `?host=parent` bridge opens and saves through a same-origin framing page; scores unchanged) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 
 > **Last reviewed:** 2026-11-02 · **Last updated:** 2026-11-03 · **Change:** trivial (community PR wave 10: PPTX and native saves keep table cell centred anchoring, text overflow, compatible line spacing, normalised character height, Thai distributed alignment, RTL table direction, alternate run language and reflection transforms; imported effects placed by parent time-node delays; Reuse Slides fits the destination size and brings custom table styles; deleted slides leave custom shows; merged shapes drop their animations; Compress Pictures measures grouped pictures at displayed size; parity scores unchanged) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
@@ -107,7 +107,7 @@ EMF/SVG pictures, the data-loss and startup-crash bugs (#60, #40, #59) and the b
 
 ### Typeset LaTeX: known limitations
 
-Formulas, proof trees and commutative diagrams (part of Text) are typeset by DeckCraft itself.
+Formulas, proof trees, commutative diagrams and algorithms (part of Text) are typeset by DeckCraft itself.
 The [README's tutorial](README.md#limitations) lists every limitation; the main ones:
 
 - **Needs the next craft-libs update:** amssymb's names (`\vDash`, `\nvdash`, `\Box`, `\land`,
@@ -123,6 +123,9 @@ The [README's tutorial](README.md#limitations) lists every limitation; the main 
   background colour. Squiggly arrows need `decorations.pathmorphing` in the paper's preamble.
   quiver's triple arrows are drawn double and its curve heights approximated; share links,
   `\xymatrix` and `{CD}` aren't read.
+- **Pseudo-code is algpseudocode:** the older `algorithmic` is read too, but algorithm2e isn't.
+  Blocks defined with `\algdef`, algpseudocodex's extras and other unknown commands are kept and
+  written back but not drawn, and `\algstore` numbering doesn't continue across parts.
 - **The diagram editor:** it edits an arrow's first label, colours an arrow with its labels,
   doesn't edit row and column gaps, and rewrites the LaTeX in its own layout (comments and cell
   names go).
@@ -178,6 +181,7 @@ app's JSON control channel (`deckcraft --control PORT`).
 
 | Date | What landed |
 |---|---|
+| 2026-11-15 | Insert ▸ Pseudo-code: a tool that writes algorithms line by line as algorithmicx's `algpseudocode` sets them (typing a keyword makes its block; Enter, Tab and Shift+Tab build the nesting; + above/below, drag to move, wrap a selection in a block; captions, frames, numbering, hidden end lines, Input/Output; templates; a two-way LaTeX pane). `insert.latex` reads algpseudocode and the older `algorithmic`, with the `algorithm` float, and draws them with algorithmicx's measured rules, spacing and gutter. Typeset math sets `-` as a minus sign. README tutorial section |
 | 2026-11-14 | DeckCraft Logicians Edition: the ArtCraft marks are removed (DeckCraft's brand terms ask modified versions to), its own logo replaces them in the README, About and start screen, links go to DeckCraft's source; the README presents the edition's LaTeX, proof trees and diagrams |
 | 2026-11-14 | Insert ▸ Commutative Diagram: an editor that draws category-theory diagrams on a grid (objects by click, arrows by drag, arrows between arrows; tails, lines, heads, curve, offset, labels, colour and crossing over set beside the picture; templates; a tikz-cd pane). `insert.latex` reads tikz-cd (hand-written or quiver's export) and draws it with tikz-cd's spacing and tips; the LaTeX it writes compiles with `\usepackage{tikz-cd}`; README tutorial section |
 | 2026-11-14 | README: a tutorial for LaTeX equations and proof trees, with screenshots. Typeset formulas: a `¬`, digit or symbol after a space no longer takes the fallback font of the symbol before it; `\underset{x}{\min}` is spaced as an operator |
@@ -372,6 +376,7 @@ app's JSON control channel (`deckcraft --control PORT`).
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-15 | trivial | Progress log: the Pseudo-code tool; its limitations listed under typeset LaTeX; parity scores unchanged |
 | 2026-11-14 | trivial | Progress log: the Logicians Edition branding; parity scores unchanged |
 | 2026-11-14 | trivial | Progress log: commutative diagrams (tikz-cd) and their editor; known limitations of typeset LaTeX listed under Features; parity scores unchanged |
 | 2026-11-14 | trivial | Progress log: the README tutorial for LaTeX equations and proof trees; parity scores unchanged |

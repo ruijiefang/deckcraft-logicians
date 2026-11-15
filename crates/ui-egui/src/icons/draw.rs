@@ -428,6 +428,17 @@ fn draw_insert_to_design(p: &Pen<'_>, icon: Icon) -> bool {
             p.line_w(&[(17.0, 7.5), (7.5, 16.5)], K, 1.3);
             p.line_w(&[(7.6, 13.3), (7.3, 16.7), (10.7, 16.4)], K, 1.3);
         }
+        I::Pseudocode => {
+            // A ruled algorithm: rules, numbered lines, one block's lines indented.
+            p.line_w(&[(2.0, 3.0), (22.0, 3.0)], K, 1.6);
+            p.line_w(&[(2.0, 6.0), (22.0, 6.0)], K, 0.9);
+            for (k, (x, w)) in [(6.5, 12.0), (9.5, 10.5), (9.5, 8.0), (6.5, 7.0)].into_iter().enumerate() {
+                let y = 9.5 + 3.4 * k as f32;
+                p.dot((3.6, y), 0.9, K);
+                p.line_w(&[(x, y), (x + w, y)], if k == 0 || k == 3 { B } else { K }, 1.4);
+            }
+            p.line_w(&[(2.0, 21.5), (22.0, 21.5)], K, 0.9);
+        }
         I::Symbol => p.text("Ω", (12.0, 12.0), 22.0, K),
         I::Video => {
             p.rect((2.0, 6.0, 15.5, 18.0), 2.0, t(B), K);

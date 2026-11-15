@@ -65,9 +65,9 @@ fn logic_is_spaced_like_tex() {
     assert_eq!(plain(r"(\bot\to A)"), format!("(⊥{THICK}→{THICK}A)"));
     assert_eq!(plain(r"u\perp v"), format!("u{THICK}⊥{THICK}v"));
     // A leading or bracketed minus is not a binary operator.
-    assert_eq!(plain("-x+1"), format!("-x{MED}+{MED}1"));
-    assert_eq!(plain("(-1)"), "(-1)");
-    assert_eq!(plain(r"a=-b"), format!("a{THICK}={THICK}-b"));
+    assert_eq!(plain("-x+1"), format!("−x{MED}+{MED}1"));
+    assert_eq!(plain("(-1)"), "(−1)");
+    assert_eq!(plain(r"a=-b"), format!("a{THICK}={THICK}−b"));
 }
 
 #[test]
@@ -345,4 +345,13 @@ fn hostile_input_never_crashes() {
     assert_eq!(lines(&t).len(), super::layout::MAX_DEPTH - 1);
     let long = "x".repeat(super::MAX_SOURCE + 1);
     assert!(typeset(&long, &style(), &measure).is_err());
+}
+
+#[test]
+fn a_hyphen_in_math_is_a_minus_sign() {
+    let text = |p: Vec<super::runs::Piece>| p.iter().map(|x| x.text.as_str()).collect::<String>();
+    assert!(text(super::runs::math_pieces("a - 1")).contains('\u{2212}'));
+    assert!(!text(super::runs::math_pieces("a - 1")).contains('-'));
+    let t = text(super::runs::text_pieces("well-known $x-1$"));
+    assert!(t.contains("well-known") && t.contains('\u{2212}'), "{t}");
 }
