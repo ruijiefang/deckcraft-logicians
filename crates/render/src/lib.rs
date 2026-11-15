@@ -15,6 +15,9 @@ mod colr;
 mod extrude;
 mod light;
 
+mod credits;
+pub use credits::image_credits;
+
 mod compound;
 mod extent;
 mod images;

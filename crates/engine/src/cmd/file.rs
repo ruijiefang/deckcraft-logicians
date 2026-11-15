@@ -544,7 +544,7 @@ pub fn render_png_with(doc: &Presentation, index: usize, scale: f64, edit: bool,
     let scale = image_scale(doc, scale);
     let opts = deckcraft_render::RenderOpts { scale, edit, transparent_background: transparent, ..Default::default() };
     let img = deckcraft_render::render_slide(doc, index, &opts);
-    (img.to_png_at(deckcraft_render::dpi_for_scale(scale)), img.width, img.height)
+    (deckcraft_render::image_credits(img.to_png_at(deckcraft_render::dpi_for_scale(scale)), "png", doc), img.width, img.height)
 }
 
 fn finite_scale(scale: f64) -> f64 {
@@ -617,7 +617,7 @@ fn export(s: &mut Session, p: &Value) -> Result<Value> {
                     *i,
                     &deckcraft_render::RenderOpts { scale, transparent_background: transparent, ..Default::default() },
                 );
-                let bytes = picture_bytes(&img, &format, scale);
+                let bytes = deckcraft_render::image_credits(picture_bytes(&img, &format, scale), &format, &st.doc);
                 let out = if slides.len() == 1 {
                     path.clone()
                 } else {

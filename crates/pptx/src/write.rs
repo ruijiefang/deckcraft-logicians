@@ -1253,6 +1253,7 @@ fn view_props_xml(p: &Presentation) -> Vec<u8> {
 }
 
 fn core_xml(p: &Presentation) -> Vec<u8> {
+    let description = deckcraft_model::icon_credits::description(p);
     let pr = &p.props;
     let mut w = W::new();
     w.open(
@@ -1269,7 +1270,7 @@ fn core_xml(p: &Presentation) -> Vec<u8> {
         ("dc:subject", &pr.subject),
         ("dc:creator", &pr.author),
         ("cp:keywords", &pr.keywords),
-        ("dc:description", &pr.comments),
+        ("dc:description", &description),
         ("cp:category", &pr.category),
         ("cp:lastModifiedBy", &pr.last_modified_by),
     ] {

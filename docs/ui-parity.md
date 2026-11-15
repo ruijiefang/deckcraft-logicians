@@ -1,5 +1,6 @@
 # UI parity with PowerPoint
 
+> **Last reviewed:** 2026-11-15 · **Last updated:** 2026-11-15 · **Change:** minor (1,576 Font Awesome Free icons alongside 70 Lucide icons; paged gallery and export attribution; parity scores unchanged). See [icon catalogue](icons.md).
 > **Last reviewed:** 2026-11-02 · **Last updated:** 2026-11-02 · **Change:** trivial (File › About replaces Account; product links, credits and appearance retained; parity scores unchanged) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 > **Last reviewed:** 2026-10-14 · **Last updated:** 2026-11-01 · **Change:** trivial (locked No Fill and no-outline click-through regression coverage added; No Fill hit-testing follows resolved fill instead of the presence of a style (#1621); scores unchanged) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 > **Last reviewed:** 2026-10-14 · **Last updated:** 2026-10-26 · **Change:** trivial (dragging several selected slides moves them all; previous: trivial, Edit Points: Shift, Ctrl/Cmd or Alt/Option on a handle drag sets the point type; previous: trivial, scroll bars on the zoomed slide pane, #1157; previous: major, community PR wave 2026-10-14: 14 new dialogs (41 in all), Eyedropper, Export button, New Window, Grid Options, WordArt gallery and handles, Slide Sorter sections, Quick Access Toolbar, Format Background and Format Shape depth, rich-text clipboard; duplicated rows and headers folded; previous: minor, File tab / Backstage, #76) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
@@ -150,7 +151,9 @@ Alt+Shift+arrows in text are handled elsewhere (#78, #93).
 Colours, spacing, ribbon card and tab geometry follow the observations in
 `plan/powerpoint/01-observed-ui.md`; the ribbon and menu icons are original (~240, drawn in code)
 and must not imitate Microsoft's. Insert › Icons places Lucide stroke icons (ISC, release 1.56.0)
-on the slide as shapes. The editing canvas, thumbnails and layout previews are drawn on the
+and Font Awesome Free filled icons (CC-BY-4.0, release 7.1.0) on the slide as editable shapes.
+The gallery has collection/style/category filters, keyword search, 96-icon pages and copyable
+credits. The editing canvas, thumbnails and layout previews are drawn on the
 physical pixel grid, so a Retina display does not blur them between pixels (#184). No pixel
 comparison against PowerPoint screenshots has been run since 2026-10-07. Cross-app icon
 consistency is open (#73, #56).
@@ -173,6 +176,7 @@ consistency is open (#73, #56).
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-15 | minor | Insert Icons: 1,576 Font Awesome Free Solid/Regular icons, 70 Lucide icons, searchable filtered pages, editable filled geometry and embedded export credits. Combined icons/3-D/stock score stays M |
 | 2026-11-02 | trivial | File › About replaces Account; product links, credits and appearance retained |
 | 2026-10-31 | trivial | No Fill hit-testing follows resolved fill instead of the presence of a style (#1621); scores unchanged |
 | 2026-10-29 | trivial | Picture Format: the Picture Styles row shows as many styles as fit beside the groups after it (at least two) and a More arrow with all 24, as the Transitions and Animations galleries do; Crop and Size are in view in the default window (#1232) |

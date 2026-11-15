@@ -1,5 +1,6 @@
 # Where DeckCraft falls short of PowerPoint
 
+> **Last reviewed:** 2026-11-15 · **Last updated:** 2026-11-15 · **Change:** minor (1,576 Font Awesome Free icons alongside 70 Lucide icons; paged gallery and export attribution; parity scores unchanged). See [icon catalogue](icons.md).
 > **Last reviewed:** 2026-10-30 · **Last updated:** 2026-11-15 · **Change:** trivial (equations: algorithms in algpseudocode and the Pseudo-code tool; previous: trivial (equations: commutative diagrams in tikz-cd and their editor; previous: trivial (equations: typeset formulas are one line, `\underset` over a function name waits on the craft-libs pin; previous: trivial (LaTeX in Insert ▸ Equation: Office Math equations and DeckCraft-typeset formulas, arrays and proof trees; the equations gap stays open for 2-D layout and an editor; previous: trivial (workflow-breaking regression fixed: Ctrl+C/X/V use the system clipboard again; #1414 to re-test on Windows; previous: trivial, run alternate language and reflection transforms survive saves; reused slide contents scale to the destination, picker thumbnails remain a gap; previous: trivial (locked No Fill and no-outline click-through regression coverage added; No Fill hit-testing follows resolved fill instead of the presence of a style (#1621); scores unchanged)))))) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 
 Every known shortfall, one entry each, ranked by how much it stops someone who presents with
@@ -301,7 +302,7 @@ artistic effects (3–6 h for the other 15 of 22; 7 approximated and round-tripp
 background (6–10 h; needs a model or a classical matte), insert screenshot (2–3 h), record
 audio/screen and record slide show (8–12 h), compare presentations beyond accepting and rejecting each revision, or all (#850; per-object accept and reject, markers on the slide: 2–4 h), password protection (4–6 h, ECMA-376
 agile encryption), ink to text and math beyond Ink to Shape (6–10 h), 3-D models and stock content
-(6–10 h; Insert › Icons places a Lucide stroke set).
+(6–10 h; Insert › Icons now includes 70 Lucide stroke icons and 1,576 Font Awesome Free Solid/Regular icons; 3-D and stock content remain open).
 
 ## UI/UX
 
@@ -380,6 +381,7 @@ Detail in [localization-parity.md](localization-parity.md).
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-15 | minor | Insert Icons: 1,576 Font Awesome Free Solid/Regular icons, 70 Lucide icons, searchable filtered pages, editable filled geometry and embedded export credits. Combined icons/3-D/stock score stays M |
 | 2026-11-15 | trivial | Equations: algpseudocode algorithms and the Pseudo-code tool |
 | 2026-11-14 | trivial | Equations: tikz-cd commutative diagrams drawn as paths, edited on a grid |
 | 2026-11-14 | trivial | Equations: typeset formulas are one line (`\frac`, `cases`, `pmatrix`); `\underset` over a function name waits on the craft-libs pin |

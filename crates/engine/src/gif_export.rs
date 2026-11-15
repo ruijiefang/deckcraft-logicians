@@ -227,6 +227,7 @@ pub fn encode(doc: &Presentation, opts: &GifOptions) -> Result<GifOutput> {
             enc.encode_frame(image::Frame::from_parts(buffer, 0, 0, delay)).map_err(enc_err)?;
         }
     }
+    let bytes = deckcraft_render::image_credits(bytes, "gif", doc);
     Ok(GifOutput { bytes, frames: frames.len(), width: w, height: h, delay_cs })
 }
 

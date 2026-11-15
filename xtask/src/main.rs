@@ -6,6 +6,7 @@
 mod assets;
 mod bench;
 mod ico;
+mod icon_catalog;
 mod layers;
 mod parity;
 mod pdf_deps;
@@ -19,6 +20,7 @@ const USAGE: &str = "\
 usage: cargo xtask <command>
 
 commands:
+  icons SOURCE OUTPUT  generate Font Awesome Free catalogue from pinned metadata
   assets          check that every icon/image/font/asset is attributed in ATTRIBUTION.md
   pdf-deps        verify pinned writer sources and the production feature boundary
   layers          enforce the crate dependency layering (plan/architecture.md §3)
@@ -39,6 +41,7 @@ fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let rest: Vec<&str> = args.iter().skip(1).map(String::as_str).collect();
     let result = match args.first().map(String::as_str) {
+        Some("icons") => icon_catalog::run(&rest),
         Some("assets") => assets::run(&root()),
         Some("layers") => cmd_layers(),
         Some("pdf-deps") => pdf_deps::run(&root()),
