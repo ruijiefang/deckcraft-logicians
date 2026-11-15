@@ -95,6 +95,12 @@ pub struct Editor {
     dirty: bool,
     /// Where the cursor goes in the field after a keyword turned its line into a block.
     pending_cursor: Option<usize>,
+    /// The text as typed in the row being edited. The field shows this, not the line read back,
+    /// so a procedure's `Name(` isn't given its `)` while it is being typed.
+    typing: String,
+    /// The algorithm before the row being edited was changed: one undo step, taken at the first
+    /// change (just looking at a row changes nothing).
+    pending_undo: Option<Snap>,
 }
 
 pub(super) fn dialog(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
@@ -155,11 +161,16 @@ impl Editor {
             confirm_discard: false,
             dirty: false,
             pending_cursor: None,
+            typing: String::new(),
+            pending_undo: None,
         }
     }
 
     fn open(app: &mut SlideApp, d: &Dialog) -> Self {
         let mut e = Editor::empty();
+        // Esc puts even the first line back.
+        e.backup = Some(e.a.clone());
+        e.pending_undo = Some(e.snapshot());
         let found = app.session.execute("latex.get", &json!({})).ok();
         let selected = found.filter(|v| {
             v.get("kind").and_then(Value::as_str) == Some("typeset") && v.get("latex").and_then(Value::as_str).is_some_and(algo::is_algorithm)
@@ -259,10 +270,10 @@ impl Editor {
             return;
         }
         if self.editing != Some(i) {
-            let before = self.snapshot();
-            self.remember(before);
+            self.pending_undo = Some(self.snapshot());
             self.backup = Some(self.a.clone());
         }
+        self.typing = self.field(i).unwrap_or_default();
         self.editing = Some(i);
         self.sel = vec![i];
         self.focus = true;
@@ -272,6 +283,14 @@ impl Editor {
     fn stop_editing(&mut self) {
         self.editing = None;
         self.backup = None;
+        self.pending_undo = None;
+    }
+
+    /// The row being edited is about to change: its undo step, once.
+    fn touch(&mut self) {
+        if let Some(before) = self.pending_undo.take() {
+            self.remember(before);
+        }
     }
 
     /// What row `i` lets you type: its text, condition, `Name(params)`, or nothing.
@@ -434,7 +453,7 @@ impl Editor {
             return false;
         };
         let Some(r) = self.row(i).filter(|r| r.part == Part::Line && r.path.len() >= 2) else { return false };
-        let parent: Path = r.path.get(..r.path.len() - 1).unwrap_or(&[]).to_vec();
+        let parent: Path = r.path.get(..r.path.len().saturating_sub(1)).unwrap_or(&[]).to_vec();
         let Some(&(list, index)) = r.path.last() else { return false };
         if edit::line(&self.a, &parent).is_none_or(|l| l.kind != Kind::If) {
             return false;
@@ -494,7 +513,7 @@ impl Editor {
                     last.1 += 1;
                 }
                 let (parent, (list, index)) =
-                    (slot_path.get(..slot_path.len() - 1).unwrap_or(&[]).to_vec(), slot_path.last().copied().unwrap_or((0, 0)));
+                    (slot_path.get(..slot_path.len().saturating_sub(1)).unwrap_or(&[]).to_vec(), slot_path.last().copied().unwrap_or((0, 0)));
                 self.apply(|al| edit::insert(al, &Slot { parent, list, index }, l).map(|p| Some((p, Part::Line))));
             }
             Action::Delete | Action::DeleteAll => {
@@ -978,15 +997,21 @@ impl Editor {
         // egui lets go of the field's focus at Esc itself, so this doesn't wait for focus.
         if ctx.input_mut(|inp| inp.consume_key(Modifiers::NONE, Key::Escape)) {
             if let Some(b) = self.backup.take() {
+                // Changed: its undo step goes too, as the line is as it was.
+                if self.pending_undo.is_none() {
+                    self.undo.pop();
+                }
                 self.a = b;
             }
+            self.dirty = !self.undo.is_empty();
+            self.pending_undo = None;
             self.editing = None;
             ctx.memory_mut(|m| m.surrender_focus(field_id()));
             return;
         }
         if focused {
             let consume = |m: Modifiers, key: Key| ctx.input_mut(|inp| inp.consume_key(m, key));
-            let text = self.field(i).unwrap_or_default();
+            let text = self.typing.clone();
             if consume(Modifiers::SHIFT, Key::Tab) {
                 self.stop_editing();
                 self.restructure(Action::Outdent);
@@ -1053,7 +1078,13 @@ impl Editor {
                 return;
             }
         }
-        let mut text = self.field(i).unwrap_or_default();
+        let mut text = self.typing.clone();
+        // The cursor goes where it was asked to before the field reads its keys this frame.
+        if let Some(at) = self.pending_cursor.take() {
+            let mut state = egui::text_edit::TextEditState::load(&ctx, field_id()).unwrap_or_default();
+            state.cursor.set_char_range(Some(CCursorRange::one(CCursor::new(at))));
+            state.store(&ctx, field_id());
+        }
         let font = egui::FontId::monospace(((self.size * 0.62) * k).clamp(11.0, 26.0) as f32);
         let t = Tokens::get(ui.ctx());
         ui.painter().rect_filled(text_rect.expand(2.0), 3.0, t.text_field);
@@ -1077,14 +1108,12 @@ impl Editor {
             self.focus = false;
             self.select_all = false;
         }
-        if let Some(at) = self.pending_cursor.take() {
-            let mut state = egui::text_edit::TextEditState::load(&ctx, field_id()).unwrap_or_default();
-            state.cursor.set_char_range(Some(CCursorRange::one(CCursor::new(at))));
-            state.store(&ctx, field_id());
-        }
         if resp.changed() {
-            self.set_field(i, text.clone());
-            self.smart(i, &text, false);
+            self.touch();
+            self.typing = text.clone();
+            if !self.smart(i, &text, false) {
+                self.set_field(i, text);
+            }
         }
         if let Some(mut comment) = self.comment_of(i) {
             ui.painter().rect_filled(comment_rect.expand(2.0), 3.0, t.text_field);
@@ -1093,6 +1122,7 @@ impl Editor {
             let cr = ui.put(comment_rect, c);
             cr.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, "Comment"));
             if cr.changed() {
+                self.touch();
                 self.set_comment(i, comment);
             }
         }
@@ -1117,8 +1147,10 @@ impl Editor {
             self.stop_editing();
             self.edit_row(i + 1, false);
         } else {
+            // The keyword is gone from the field; what followed it stays, as typed.
             self.focus = true;
-            self.pending_cursor = Some(self.field(i).map_or(0, |f| f.chars().count()));
+            self.pending_cursor = Some(rest.chars().count());
+            self.typing = rest;
         }
         true
     }
@@ -1147,7 +1179,7 @@ impl Editor {
         }
         // An empty last line of a block: out of the block, as when typing it on paper.
         let last = r.path.last().is_some_and(|&(list, index)| {
-            let parent = r.path.get(..r.path.len() - 1).unwrap_or(&[]);
+            let parent = r.path.get(..r.path.len().saturating_sub(1)).unwrap_or(&[]);
             let len = edit::line(&self.a, parent)
                 .map_or(0, |p| if list == 0 { p.body.len() } else { p.branches.get(list - 1).map_or(0, |b| b.body.len()) });
             index + 1 == len
@@ -1228,6 +1260,10 @@ impl Editor {
                 self.focus = false;
             }
             if resp.changed() {
+                self.touch();
+                if self.editing == Some(i) {
+                    self.typing = text.clone();
+                }
                 self.set_field(i, text);
             }
         }

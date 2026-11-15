@@ -311,11 +311,23 @@ pub fn typed(text: &str, whole: bool) -> Option<(Kind, String)> {
     ];
     for (word, kind) in table {
         if lower.starts_with(word) {
-            return Some((kind, text.get(word.len()..).unwrap_or("").to_string()));
+            let rest = text.get(word.len()..).unwrap_or("");
+            // `for a…` may still become `for all`: wait while it can.
+            let after = lower.get(word.len()..).unwrap_or("");
+            if kind == Kind::For && "all".starts_with(after.trim_end()) {
+                if !whole {
+                    return None;
+                }
+                if after.trim_end() == "all" {
+                    return Some((Kind::ForAll, String::new()));
+                }
+            }
+            return Some((kind, rest.to_string()));
         }
     }
     if whole {
         match lower.trim() {
+            "forall" => return Some((Kind::ForAll, String::new())),
             "repeat" => return Some((Kind::Repeat, String::new())),
             "loop" => return Some((Kind::Loop, String::new())),
             "return" => return Some((Kind::Return, String::new())),

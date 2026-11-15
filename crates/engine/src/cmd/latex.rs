@@ -41,7 +41,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "LaTeX",
             ["Insert", "Symbols"],
             None,
-            "{latex: string (a formula; an array, tabular, align or gather environment; proof trees in ebproof, bussproofs, mathpartir or proof.sty syntax; or a tikz-cd commutative diagram), rect?: [x,y,w,h] (x and y place it; the size comes from the text), size?: pt (24), font?: family (Liberation Serif; \"\" for the theme's)} → {id, kind: formula|grid|proof|diagram}",
+            "{latex: string (a formula; an array, tabular, align or gather environment; proof trees in ebproof, bussproofs, mathpartir or proof.sty syntax; a tikz-cd commutative diagram; or an algpseudocode algorithm), rect?: [x,y,w,h] (x and y place it; the size comes from the text), size?: pt (24; 16 for an algorithm), font?: family (Liberation Serif; \"\" for the theme's)} → {id, kind: formula|grid|proof|diagram|algorithm}",
             has_slide,
             insert_latex
         ),

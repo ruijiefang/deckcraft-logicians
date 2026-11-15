@@ -245,6 +245,14 @@ fn branches_add_in_order_and_merge_back() {
 fn keywords_typed_first_make_blocks() {
     assert_eq!(edit::typed("if $x > 0$", false), Some((Kind::If, "$x > 0$".into())));
     assert_eq!(edit::typed("For all $v$", false), Some((Kind::ForAll, "$v$".into())));
+    // Typed a key at a time, `for a`, `for al` and `for all` wait: they may become `for all`.
+    for partial in ["for ", "for a", "for al", "for all"] {
+        assert_eq!(edit::typed(partial, false), None, "{partial}");
+    }
+    assert_eq!(edit::typed("for all ", false), Some((Kind::ForAll, String::new())));
+    assert_eq!(edit::typed("for alpha", false), Some((Kind::For, "alpha".into())));
+    assert_eq!(edit::typed("for $i$", false), Some((Kind::For, "$i$".into())));
+    assert_eq!(edit::typed("for all", true), Some((Kind::ForAll, String::new())));
     assert_eq!(edit::typed("loop", false), None);
     assert_eq!(edit::typed("loop", true), Some((Kind::Loop, String::new())));
     assert_eq!(edit::typed("iffy", true), None);

@@ -1,4 +1,4 @@
-use deckcraft_engine::typeset::algo::{self, Kind, Part};
+use deckcraft_engine::typeset::algo::{self, Kind, Part, edit};
 use egui::accesskit::Role;
 use egui::{Event, Key, Modifiers, PointerButton, Pos2, vec2};
 use egui_kittest::Harness;
@@ -50,11 +50,11 @@ fn open(h: &mut Harness<'_, SlideApp>) {
     h.run_steps(4);
 }
 
-/// Types into the row being edited, then presses Enter.
+/// Types into the row being edited one key at a time, as a person does, then presses Enter.
 fn line(h: &mut Harness<'_, SlideApp>, s: &str) {
-    if !s.is_empty() {
-        h.get(field()).type_text(s);
-        h.run_steps(2);
+    for c in s.chars() {
+        h.get(field()).type_text(&c.to_string());
+        h.run_steps(1);
     }
     h.key_press(Key::Enter);
     h.run_steps(3);
@@ -74,6 +74,19 @@ fn types_an_algorithm_with_the_keyboard_alone() {
     assert_eq!(editor(&h).editing, Some(0), "typing starts at once");
 
     line(&mut h, "procedure Euclid(a, b)");
+    line(&mut h, r"for all $v \in V$");
+    line(&mut h, r"$x \gets v$");
+    line(&mut h, "");
+    h.key_press(Key::Escape);
+    h.run_steps(2);
+    let p = edit::line(&editor(&h).a, &[(0, 0), (0, 0)]).cloned().unwrap();
+    assert_eq!((p.kind, p.text.as_str()), (Kind::ForAll, r"$v \in V$"));
+    h.state_mut().algo_editor.as_mut().unwrap().a.body[0].body.clear();
+    h.state_mut().algo_editor.as_mut().unwrap().a.body[0].body.push(algo::Line::state(""));
+    h.state_mut().algo_editor.as_mut().unwrap().sel = vec![1];
+    h.run_steps(1);
+    h.key_press(Key::Enter);
+    h.run_steps(3);
     line(&mut h, r"$r \gets a \bmod b$");
     line(&mut h, r"while $r \neq 0$");
     line(&mut h, r"$a \gets b$");
@@ -276,4 +289,37 @@ fn tab_and_shift_tab_while_typing() {
     let a = &editor(&h).a;
     assert_eq!((a.body.len(), a.body[0].body.len()), (1, 2));
     assert_eq!(a.body[0].body[1].text, "$b$");
+}
+
+/// Entering a line and leaving it unchanged is no change: no undo step, and closing doesn't ask.
+/// Esc puts back even the first line of a new algorithm.
+#[test]
+fn looking_at_a_line_changes_nothing() {
+    let mut s = deckcraft_engine::Session::with_new();
+    s.execute("insert.latex", &json!({"latex": "\\begin{algorithmic}[1]\n\\State $a$\n\\end{algorithmic}"})).unwrap();
+    let mut h = harness(s);
+    open(&mut h);
+    h.get(row(1)).click();
+    h.run_steps(2);
+    h.key_press(Key::Enter);
+    h.run_steps(3);
+    assert_eq!(editor(&h).editing, Some(0));
+    h.key_press(Key::Escape);
+    h.run_steps(2);
+    assert!(editor(&h).undo.is_empty(), "no undo step");
+    h.key_press(Key::Escape); // deselect
+    h.run_steps(2);
+    h.key_press(Key::Escape); // close
+    h.run_steps(2);
+    assert!(h.state().dialog.is_none(), "nothing changed, so it closes without asking");
+
+    let mut h = harness(deckcraft_engine::Session::with_new());
+    open(&mut h);
+    h.get(field()).type_text("x");
+    h.run_steps(2);
+    assert_eq!(editor(&h).undo.len(), 1);
+    h.key_press(Key::Escape);
+    h.run_steps(2);
+    assert_eq!(editor(&h).a.body[0].text, "");
+    assert!(editor(&h).undo.is_empty());
 }
