@@ -1,5 +1,6 @@
 # DeckCraft roadmap
 
+> **Last reviewed:** 2026-11-15 · **Last updated:** 2026-11-15 · **Change:** minor (1,576 Font Awesome Free icons alongside 70 Lucide icons; paged gallery and export attribution; parity scores unchanged). See [icon catalogue](docs/icons.md).
 **Stage: alpha** · next: beta, ~20 points and ~120–210 h away
 
 > **Last reviewed:** 2026-11-04 · **Last updated:** 2026-11-15 · **Change:** trivial (progress log: the Logicians Edition branding; previous: trivial (progress log: the Pseudo-code tool (algpseudocode); its limitations under typeset LaTeX; previous: trivial (progress log: commutative diagrams (tikz-cd) and their editor; known limitations of typeset LaTeX; previous: trivial (progress log: the README tutorial for LaTeX equations and proof trees; previous: trivial (progress log: the Proof Tree builder; previous: trivial (progress log: LaTeX equations and proof trees; equations checklist row M → P; previous: trivial (slide-list entries with missing relationships are reported as lost slides and open as repaired copies; the Opus decoder and the Ogg, MP4 and Matroska demuxers come from craft-libs; parity scores unchanged))))))) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
@@ -181,6 +182,7 @@ app's JSON control channel (`deckcraft --control PORT`).
 
 | Date | What landed |
 |---|---|
+| 2026-11-15 | Insert Icons: offline Font Awesome Free 7.1.0 catalogue alongside Lucide, filtered 96-icon pages, editable silhouettes and export attribution |
 | 2026-11-15 | Insert ▸ Pseudo-code: a tool that writes algorithms line by line as algorithmicx's `algpseudocode` sets them (typing a keyword makes its block; Enter, Tab and Shift+Tab build the nesting; + above/below, drag to move, wrap a selection in a block; captions, frames, numbering, hidden end lines, Input/Output; templates; a two-way LaTeX pane). `insert.latex` reads algpseudocode and the older `algorithmic`, with the `algorithm` float, and draws them with algorithmicx's measured rules, spacing and gutter. Typeset math sets `-` as a minus sign. README tutorial section |
 | 2026-11-14 | DeckCraft Logicians Edition: the ArtCraft marks are removed (DeckCraft's brand terms ask modified versions to), its own logo replaces them in the README, About and start screen, links go to DeckCraft's source; the README presents the edition's LaTeX, proof trees and diagrams |
 | 2026-11-14 | Insert ▸ Commutative Diagram: an editor that draws category-theory diagrams on a grid (objects by click, arrows by drag, arrows between arrows; tails, lines, heads, curve, offset, labels, colour and crossing over set beside the picture; templates; a tikz-cd pane). `insert.latex` reads tikz-cd (hand-written or quiver's export) and draws it with tikz-cd's spacing and tips; the LaTeX it writes compiles with `\usepackage{tikz-cd}`; README tutorial section |
@@ -376,6 +378,7 @@ app's JSON control channel (`deckcraft --control PORT`).
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-15 | minor | Insert Icons: 1,576 Font Awesome Free Solid/Regular icons, 70 Lucide icons, searchable filtered pages, editable filled geometry and embedded export credits. Combined icons/3-D/stock score stays M |
 | 2026-11-15 | trivial | Progress log: the Pseudo-code tool; its limitations listed under typeset LaTeX; parity scores unchanged |
 | 2026-11-14 | trivial | Progress log: the Logicians Edition branding; parity scores unchanged |
 | 2026-11-14 | trivial | Progress log: commutative diagrams (tikz-cd) and their editor; known limitations of typeset LaTeX listed under Features; parity scores unchanged |

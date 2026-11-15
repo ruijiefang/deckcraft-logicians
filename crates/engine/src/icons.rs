@@ -1,83 +1,143 @@
-//! Insert › Icons: Lucide stroke icons as custom geometry.
-//!
-//! The paths in `icon_data.rs` are Lucide 1.56.0 centerlines (24×24, fill none). They are converted
-//! to DeckCraft's `M`/`L`/`C`/`Q`/`Z` syntax when inserted, so the shape is a stroked outline rather
-//! than a filled silhouette or an SVG picture.
-
-use std::collections::HashMap;
+//! Offline Insert › Icons catalogue: Lucide strokes and Font Awesome Free silhouettes.
+use deckcraft_color::SchemeSlot;
+use deckcraft_geom::{Affine, BezPath, PathEl, Xfrm};
+use deckcraft_model::{ColorRef, CustomPath, Fill, Geom, Line, Shape, ShapeStyle};
 use std::sync::OnceLock;
 
-use deckcraft_geom::{BezPath, PathEl};
-
-/// Design size of every icon, in path units. Lucide's viewBox is `0 0 24 24`.
 pub const VIEW: f64 = 24.0;
 
-/// One icon from the Insert gallery.
+/// One bundled icon. Font Awesome names include collection and style to avoid collisions.
+#[derive(Clone)]
 pub struct Icon {
     pub name: &'static str,
     pub label: &'static str,
     pub category: &'static str,
-    /// Design stroke width in viewBox units (Lucide's default is 2).
+    pub collection: &'static str,
+    pub style: &'static str,
+    pub view: [f64; 2],
+    pub terms: &'static str,
+    pub categories: &'static [&'static str],
     pub stroke: f64,
-    /// SVG path data. Independent subpaths (separate SVG elements) are separated by ` | `.
     pub d: &'static str,
+    cache: OnceLock<Option<BezPath>>,
+    search: OnceLock<String>,
 }
-
 include!("icon_data.rs");
+include!("fontawesome_data.rs");
 
-/// Every icon, in gallery order.
 pub fn icons() -> &'static [Icon] {
-    ICONS
+    static ALL: OnceLock<Vec<Icon>> = OnceLock::new();
+    ALL.get_or_init(|| LUCIDE.iter().chain(FONT_AWESOME.iter()).cloned().collect())
 }
 
-/// `name` is the Lucide id (`arrow-right`, `arrow_right`) or the gallery label (`Arrow right`).
+/// Legacy labels and underscore names keep resolving to Lucide; new collections require IDs.
 pub fn find(name: &str) -> Option<&'static Icon> {
     let raw = name.trim();
-    if raw.is_empty() {
+    if raw.is_empty() || raw.len() > 256 {
         return None;
     }
     let key = raw.to_ascii_lowercase().replace('_', "-");
-    ICONS.iter().find(|i| i.name == key || i.label.eq_ignore_ascii_case(raw))
+    icons().iter().find(|i| i.name == key).or_else(|| icons().iter().find(|i| i.collection == "Lucide" && i.label.eq_ignore_ascii_case(raw)))
 }
 
-/// The icon's outline in the 24×24 viewBox.
 pub fn outline(name: &str) -> Option<&'static BezPath> {
     let icon = find(name)?;
-    parsed().get(icon.name)
+    icon.cache.get_or_init(|| bezpath(icon.d)).as_ref()
 }
 
-/// DeckCraft path syntax for `name`, in the 24×24 viewBox.
 pub fn path_data(name: &str) -> Option<String> {
     outline(name).and_then(deck_path)
 }
 
-/// Stroke width in points for a shape `w`×`h` points. Lucide's stroke is `stroke` units on a
-/// 24-unit box, so a 72 pt icon is a 6 pt line. Resizing the shape later does not change it.
 pub fn stroke_width(icon: &Icon, w: f64, h: f64) -> f64 {
     let span = w.min(h).abs().min(4_000.0);
-    let design = if icon.stroke.is_finite() && icon.stroke > 0.0 { icon.stroke } else { 2.0 };
-    (span * design / VIEW).clamp(0.25, 400.0)
+    (span * icon.stroke / VIEW).clamp(0.25, 400.0)
 }
 
-fn parsed() -> &'static HashMap<&'static str, BezPath> {
-    static CACHE: OnceLock<HashMap<&str, BezPath>> = OnceLock::new();
-    CACHE.get_or_init(|| {
-        let mut m = HashMap::new();
-        for icon in ICONS {
-            if let Some(bp) = bezpath(icon.d) {
-                m.insert(icon.name, bp);
-            }
+impl Icon {
+    pub fn filled(&self) -> bool {
+        self.stroke == 0.0
+    }
+    pub fn in_category(&self, category: &str) -> bool {
+        self.category == category || self.categories.contains(&category)
+    }
+    /// Search all words, allowing aliases and category keywords in any order.
+    pub fn matches(&self, query: &str) -> bool {
+        if query.trim().is_empty() {
+            return true;
         }
-        m
-    })
+        let haystack = self.search.get_or_init(|| {
+            format!("{} {} {} {} {} {} {}", self.name, self.label, self.category, self.collection, self.style, self.terms, self.categories.join(" "))
+                .to_lowercase()
+        });
+        query.split_whitespace().all(|word| haystack.contains(&word.to_lowercase()))
+    }
 }
 
-/// Parse SVG path data, one independent subpath at a time (` | ` resets the current point).
+/// Shape construction shared by insertion and thumbnail rendering. Padding preserves the source
+/// aspect within the requested box; legacy Lucide geometry and stroke sizes stay unchanged.
+pub fn shape(icon: &Icon, rect: Xfrm) -> Option<Shape> {
+    if ![rect.x, rect.y, rect.w, rect.h].iter().all(|v| v.is_finite()) || rect.w <= 0.0 || rect.h <= 0.0 {
+        return None;
+    }
+    let mut bp = outline(icon.name)?.clone();
+    let [vw, vh] = icon.view;
+    let (pw, ph) = if icon.filled() {
+        let scale = (rect.w / vw).min(rect.h / vh);
+        let (pw, ph) = (rect.w / scale, rect.h / scale);
+        bp.apply_affine(Affine::translate(((pw - vw) / 2.0, (ph - vh) / 2.0)));
+        (pw, ph)
+    } else {
+        (vw, vh)
+    };
+    let filled = icon.filled();
+    let mut shape = Shape {
+        name: icon.label.into(),
+        xfrm: Some(rect),
+        geom: Geom::Custom {
+            paths: vec![CustomPath {
+                w: pw,
+                h: ph,
+                d: deck_path(&bp)?,
+                fill: if filled { deckcraft_geom::preset::FillMode::Norm } else { deckcraft_geom::preset::FillMode::None },
+                stroke: !filled,
+            }],
+        },
+        fill: Some(if filled { Fill::solid(ColorRef::scheme(SchemeSlot::Tx1)) } else { Fill::None }),
+        line: Some(Line {
+            fill: Some(if filled { Fill::None } else { Fill::solid(ColorRef::scheme(SchemeSlot::Tx1)) }),
+            width: Some(stroke_width(icon, rect.w, rect.h)),
+            cap: Some(deckcraft_model::style::LineCap::Round),
+            join: Some(deckcraft_model::style::LineJoin::Round),
+            ..Default::default()
+        }),
+        style: if filled { None } else { Some(ShapeStyle::line(SchemeSlot::Tx1)) },
+        ..Default::default()
+    };
+    if filled {
+        let source = format!(
+            "https://github.com/FortAwesome/Font-Awesome/tree/41cfe644047fc3a4c49c22acc721cacc3e1021fe/svgs/{}/{}.svg",
+            icon.style,
+            icon.name.rsplit(':').next()?
+        );
+        shape.tags = vec![
+            ("deckcraft.icon.id".into(), icon.name.into()),
+            (
+                deckcraft_model::icon_credits::CREDIT_TAG.into(),
+                format!(
+                    "{} ({}): Font Awesome Free 7.1.0 by Fonticons, Inc. — {source} — CC-BY-4.0 https://creativecommons.org/licenses/by/4.0/ — converted to editable paths; winding normalized where necessary.",
+                    icon.label, icon.style
+                ),
+            ),
+        ];
+    }
+    Some(shape)
+}
+
 fn bezpath(d: &str) -> Option<BezPath> {
     let mut out = BezPath::new();
     for part in d.split(" | ") {
-        let part = part.trim();
-        if part.is_empty() {
+        if part.trim().is_empty() {
             continue;
         }
         let bp = BezPath::from_svg(part).ok()?;
@@ -85,46 +145,30 @@ fn bezpath(d: &str) -> Option<BezPath> {
             out.push(*el);
         }
     }
-    if out.elements().is_empty() { None } else { Some(out) }
+    if out.elements().is_empty() || !out.is_finite() { None } else { Some(out) }
 }
 
 fn deck_path(bp: &BezPath) -> Option<String> {
     let mut out = String::new();
-    let mut started = false;
     for el in bp.elements() {
-        match *el {
-            PathEl::MoveTo(p) => {
-                push(&mut out, &format!("M {} {}", num(p.x), num(p.y)));
-                started = true;
-            }
-            PathEl::LineTo(p) if started => push(&mut out, &format!("L {} {}", num(p.x), num(p.y))),
-            PathEl::QuadTo(a, b) if started => {
-                push(&mut out, &format!("Q {} {} {} {}", num(a.x), num(a.y), num(b.x), num(b.y)));
-            }
-            PathEl::CurveTo(a, b, c) if started => {
-                push(&mut out, &format!("C {} {} {} {} {} {}", num(a.x), num(a.y), num(b.x), num(b.y), num(c.x), num(c.y)));
-            }
-            PathEl::ClosePath if started => out.push_str(" Z"),
-            _ => {}
+        let command = match *el {
+            PathEl::MoveTo(p) => format!("M {} {}", num(p.x), num(p.y)),
+            PathEl::LineTo(p) => format!("L {} {}", num(p.x), num(p.y)),
+            PathEl::QuadTo(a, b) => format!("Q {} {} {} {}", num(a.x), num(a.y), num(b.x), num(b.y)),
+            PathEl::CurveTo(a, b, c) => format!("C {} {} {} {} {} {}", num(a.x), num(a.y), num(b.x), num(b.y), num(c.x), num(c.y)),
+            PathEl::ClosePath => "Z".into(),
+        };
+        if !out.is_empty() {
+            out.push(' ');
         }
+        out.push_str(&command);
     }
-    if out.is_empty() { None } else { Some(out) }
+    (!out.is_empty()).then_some(out)
 }
-
-fn push(out: &mut String, cmd: &str) {
-    if !out.is_empty() {
-        out.push(' ');
-    }
-    out.push_str(cmd);
-}
-
 fn num(v: f64) -> String {
-    if !v.is_finite() {
-        return "0".into();
-    }
     let s = format!("{v:.4}");
-    let s = s.trim_end_matches('0').trim_end_matches('.').to_string();
-    if s == "-0" { "0".into() } else { s }
+    let s = s.trim_end_matches('0').trim_end_matches('.');
+    if s == "-0" { "0".into() } else { s.into() }
 }
 
 #[cfg(test)]
@@ -228,3 +272,7 @@ mod tests {
         n
     }
 }
+
+#[cfg(test)]
+#[path = "icons_tests.rs"]
+mod catalogue_tests;

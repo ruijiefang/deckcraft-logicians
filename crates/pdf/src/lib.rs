@@ -170,6 +170,7 @@ fn export_inner(pres: &Presentation, opts: &PdfOptions) -> Result<Vec<u8>> {
     let metadata = Metadata {
         creator: "DeckCraft".into(),
         producer: "DeckCraft".into(),
+        description: Some(deckcraft_model::icon_credits::description(pres)).filter(|s| !s.is_empty()),
         title: (!title.trim().is_empty()).then_some(title),
         authors: if pres.props.author.trim().is_empty() { Vec::new() } else { vec![pres.props.author.clone()] },
         ..Default::default()

@@ -12,6 +12,7 @@ pub mod bidi;
 pub mod chart;
 pub mod defaults;
 pub mod edit;
+pub mod icon_credits;
 pub mod numfmt;
 pub mod resolve;
 pub mod style;

@@ -7,8 +7,7 @@ fails if a file under `assets/`, `docs/images/` or `docs/brand/` is missing from
 DeckCraft contains **no Microsoft, Adobe, Avid or Autodesk iconography, images, fonts, themes,
 templates or other assets**. Its themes, colour schemes, layouts, preset-shape geometry, sample
 deck and UI icons are original work of the DeckCraft contributors (drawn or generated in code).
-Icons placed from Insert › Icons are Lucide paths (ISC; Feather-derived icons MIT), not Microsoft
-artwork. The ribbon and menu icons stay original drawings.
+Icons placed from Insert › Icons are Lucide paths (ISC; Feather-derived icons MIT) and Font Awesome Free paths (CC-BY-4.0), not Microsoft artwork. The ribbon and menu icons stay original drawings.
 
 ## In this repository
 
@@ -34,6 +33,9 @@ artwork. The ribbon and menu icons stay original drawings.
 | `crates/fonts/tests/fixtures/legacy-regular.ttf` | DeckCraft contributors | the same family's one-glyph Regular face, built by `make_legacy_font.py` (fontTools as the builder only) | CC0-1.0 | Font lookup by Windows family name tests |
 | `crates/render/tests/fixtures/make_colr_font.py` | DeckCraft contributors | this repository | MIT OR Apache-2.0 | Regenerates the COLR test font |
 | Lucide icon paths in `crates/engine/src/icon_data.rs` (Insert › Icons) | Lucide Contributors; Feather icons by Cole Bemis | https://github.com/lucide-icons/lucide/tree/440a1e1dfb1e712505308da46bead3c28b1f1398/icons (release 1.56.0, 2026-10-13) | ISC; MIT for the Feather-derived icons named in that commit's LICENSE | Stroke icons inserted as shapes |
+| `crates/engine/src/fontawesome_data.rs` | Fonticons, Inc. | [Font Awesome Free 7.1.0, commit 41cfe644](https://github.com/FortAwesome/Font-Awesome/tree/41cfe644047fc3a4c49c22acc721cacc3e1021fe); checksums and conversion in `docs/icons.md` | CC-BY-4.0 | 1,576 Free Solid/Regular icons converted to editable geometry; winding normalized where necessary; Brands excluded |
+| `assets/licenses/fontawesome-7.1.0.txt` | Fonticons, Inc. | [Upstream LICENSE.txt at 41cfe644](https://github.com/FortAwesome/Font-Awesome/blob/41cfe644047fc3a4c49c22acc721cacc3e1021fe/LICENSE.txt) | CC-BY-4.0; MIT; OFL-1.1 | Unmodified upstream licensing and notices; no upstream font or runtime bundled |
+| `assets/licenses/cc-by-4.0.txt` | Creative Commons | https://creativecommons.org/licenses/by/4.0/legalcode.txt (4.0 International) | CC0-1.0 | Licence legal text accompanying Font Awesome artwork; Creative Commons dedicates its licence text to the public domain |
 
 ## Bundled through dependencies
 

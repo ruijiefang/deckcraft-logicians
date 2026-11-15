@@ -1,4 +1,4 @@
-use super::galleries::{Fl, kurbo_flatten, shapes_gallery};
+use super::galleries::shapes_gallery;
 use super::home::layout_menu;
 use super::view::zoom_menu;
 use super::{
@@ -166,104 +166,164 @@ pub fn table_grid_picker(ui: &mut Ui) -> Option<(usize, usize)> {
     if resp.clicked() && hover.0 > 0 { Some(hover) } else { None }
 }
 
-fn render_icon_categories(app: &mut SlideApp, ui: &mut Ui, icons: &[deckcraft_engine::icons::Icon], color: Color32, hover: Color32) {
-    let mut cats: Vec<&str> = Vec::new();
-    for icon in icons {
-        if !cats.contains(&icon.category) {
-            cats.push(icon.category);
-        }
-    }
-    for cat in cats {
-        ui.label(egui::RichText::new(cat).small().strong());
-        ui.horizontal_wrapped(|ui| {
-            for icon in icons.iter().filter(|i| i.category == cat) {
-                icon_cell(app, ui, icon, color, hover);
-            }
-        });
-    }
+const ICON_PAGE: usize = 96;
+
+#[derive(Clone, Default)]
+struct IconGallery {
+    query: String,
+    collection: String,
+    style: String,
+    category: String,
+    page: usize,
+    credits: bool,
+    // At most two pages of monochrome thumbnails. Texture handles share storage when cloned.
+    previews: std::collections::HashMap<&'static str, egui::TextureHandle>,
 }
 
-fn render_filtered_icons(app: &mut SlideApp, ui: &mut Ui, icons: &[deckcraft_engine::icons::Icon], q: &str, color: Color32, hover: Color32) {
-    let mut n = 0;
-    ui.horizontal_wrapped(|ui| {
-        for icon in icons {
-            if icon.name.contains(q) || icon.label.to_lowercase().contains(q) {
-                icon_cell(app, ui, icon, color, hover);
-                n += 1;
-            }
+fn icon_filter(ui: &mut Ui, id: &str, selected: &mut String, all: &str, choices: &[&str]) {
+    craft_ui::ComboBox::from_id_salt(id).selected_text(if selected.is_empty() { all } else { selected.as_str() }).show_ui(ui, |ui| {
+        ui.selectable_value(selected, String::new(), all);
+        for choice in choices {
+            ui.selectable_value(selected, (*choice).into(), *choice);
         }
     });
-    if n == 0 {
-        ui.label("No icons match.");
-    }
 }
 
-/// Lucide stroke icons (Insert › Icons). Search filters the gallery; a click inserts the outline.
+/// Bounded pages keep layout and thumbnail rendering independent of catalogue size.
 fn icon_library(app: &mut SlideApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
-    let (color, hover) = (t.text, t.hover);
-    let id = ui.scope_id().with("icon-query");
-    let mut query = ui.data_mut(|d| d.get_temp::<String>(id).unwrap_or_default());
-    ui.add(egui::TextEdit::singleline(&mut query).hint_text("Search icons").desired_width(ui.available_width()));
-    let q = query.trim().to_lowercase();
-    ui.data_mut(|d| d.insert_temp(id, query));
+    let id = ui.scope_id().with("icon-gallery");
+    let mut state = ui.data_mut(|d| d.get_temp::<IconGallery>(id).unwrap_or_default());
+    let before = (state.query.clone(), state.collection.clone(), state.style.clone(), state.category.clone());
+    ui.add(egui::TextEdit::singleline(&mut state.query).hint_text("Search icons").desired_width(ui.available_width()).char_limit(256));
+    ui.horizontal(|ui| {
+        icon_filter(ui, "icon-collection", &mut state.collection, "All collections", &["Lucide", "Font Awesome"]);
+        icon_filter(ui, "icon-style", &mut state.style, "All styles", &["stroke", "solid", "regular"]);
+    });
     let icons = deckcraft_engine::icons::icons();
-    egui::ScrollArea::vertical().id_salt("icon-scroll").max_height(420.0).show(ui, |ui| {
-        if q.is_empty() {
-            render_icon_categories(app, ui, icons, color, hover);
-        } else {
-            render_filtered_icons(app, ui, icons, &q, color, hover);
+    let mut categories: Vec<&str> = icons
+        .iter()
+        .filter(|i| state.collection.is_empty() || i.collection == state.collection)
+        .flat_map(|i| std::iter::once(i.category).chain(i.categories.iter().copied()))
+        .collect();
+    categories.sort_unstable();
+    categories.dedup();
+    if !state.category.is_empty() && !categories.contains(&state.category.as_str()) {
+        state.category.clear();
+    }
+    icon_filter(ui, "icon-category", &mut state.category, "All categories", &categories);
+    if before != (state.query.clone(), state.collection.clone(), state.style.clone(), state.category.clone()) {
+        state.page = 0;
+    }
+    let matches: Vec<_> = icons
+        .iter()
+        .filter(|i| {
+            (state.collection.is_empty() || state.collection == i.collection)
+                && (state.style.is_empty() || state.style == i.style)
+                && (state.category.is_empty() || i.in_category(&state.category))
+                && i.matches(&state.query)
+        })
+        .collect();
+    let pages = matches.len().div_ceil(ICON_PAGE).max(1);
+    state.page = state.page.min(pages - 1);
+    ui.horizontal(|ui| {
+        if ui.add_enabled(state.page > 0, egui::Button::new("Previous icons")).clicked() {
+            state.page = state.page.saturating_sub(1);
+        }
+        ui.label(format!("{} / {} · {} icons", state.page + 1, pages, matches.len()));
+        if ui.add_enabled(state.page + 1 < pages, egui::Button::new("Next icons")).clicked() {
+            state.page += 1;
         }
     });
+    egui::ScrollArea::vertical().id_salt("icon-scroll").max_height(360.0).show(ui, |ui| {
+        if matches.is_empty() {
+            ui.label("No icons match.");
+        }
+        let page: Vec<_> = matches.iter().skip(state.page * ICON_PAGE).take(ICON_PAGE).copied().collect();
+        if !state.query.trim().is_empty() || !state.category.is_empty() {
+            ui.horizontal_wrapped(|ui| {
+                for icon in &page {
+                    icon_cell(app, ui, icon, &mut state, t.text, t.hover);
+                }
+            });
+        } else {
+            // Keep category headings, including the legacy gallery's first Arrows heading.
+            let mut start = 0;
+            while let Some(first) = page.get(start) {
+                let end = start + page.iter().skip(start).take_while(|i| i.category == first.category).count();
+                ui.label(egui::RichText::new(first.category).small().strong());
+                ui.horizontal_wrapped(|ui| {
+                    for icon in page.get(start..end).unwrap_or_default() {
+                        icon_cell(app, ui, icon, &mut state, t.text, t.hover);
+                    }
+                });
+                start = end;
+            }
+        }
+    });
+    ui.separator();
+    ui.small("Font Awesome Free: Fonticons, Inc. · CC-BY-4.0");
+    ui.hyperlink_to("Licence and attribution", "https://creativecommons.org/licenses/by/4.0/");
+    if ui.button("Used icon credits").clicked() {
+        state.credits = !state.credits;
+    }
+    if state.credits {
+        let text = app.session.execute("insert.iconCredits", &json!({})).ok().and_then(|v| v["text"].as_str().map(str::to_owned)).unwrap_or_default();
+        if text.is_empty() {
+            ui.label("No Font Awesome icons in this presentation.");
+        } else {
+            if ui.button("Copy icon credits").clicked() {
+                ui.ctx().copy_text(text.clone());
+            }
+            ui.label("Credits are embedded in exported files. Include these credits when sharing images on services that remove metadata.");
+        }
+    }
+    ui.data_mut(|d| d.insert_temp(id, state));
 }
 
-fn icon_cell(app: &mut SlideApp, ui: &mut Ui, icon: &deckcraft_engine::icons::Icon, color: Color32, hover: Color32) {
+fn icon_cell(app: &mut SlideApp, ui: &mut Ui, icon: &deckcraft_engine::icons::Icon, state: &mut IconGallery, color: Color32, hover: Color32) {
     let (r, resp) = ui.allocate_exact_size(vec2(36.0, 36.0), Sense::click());
-    if resp.hovered() {
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, format!("{} ({}, {})", icon.label, icon.collection, icon.style)));
+    if resp.hovered() || resp.has_focus() {
         ui.painter().rect_filled(r, CornerRadius::same(4), hover);
     }
-    paint_icon(ui.painter(), r.shrink(6.0), icon, color);
-    if resp.on_hover_text(icon.label).clicked() {
+    if let Some(texture) = icon_thumbnail(ui.ctx(), icon, state) {
+        ui.painter().image(texture, r.shrink(6.0), Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), color);
+    }
+    let activate = resp.clicked() || (resp.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter) || i.key_pressed(egui::Key::Space)));
+    resp.on_hover_text(format!("{} · {} {}", icon.label, icon.collection, icon.style));
+    if activate {
         let _ = app.run("insert.icon", json!({"name": icon.name}));
         ui.close();
     }
 }
 
-/// Stroke a Lucide outline into a gallery cell. The line is the design stroke scaled to the cell.
-fn paint_icon(p: &egui::Painter, r: Rect, icon: &deckcraft_engine::icons::Icon, color: Color32) {
-    let Some(src) = deckcraft_engine::icons::outline(icon.name) else { return };
-    let mut bp = src.clone();
-    let (w, h) = (r.width().max(1.0) as f64, r.height().max(1.0) as f64);
-    bp.apply_affine(deckcraft_geom::Affine::scale_non_uniform(w / deckcraft_engine::icons::VIEW, h / deckcraft_engine::icons::VIEW));
-    let sw = ((r.width() * icon.stroke as f32) / deckcraft_engine::icons::VIEW as f32).clamp(1.0, 3.5);
-    let mut pts: Vec<egui::Pos2> = vec![];
-    let mut polys: Vec<(Vec<egui::Pos2>, bool)> = vec![];
-    kurbo_flatten(&bp, |el| match el {
-        Fl::Move(x, y) => {
-            if pts.len() > 1 {
-                polys.push((std::mem::take(&mut pts), false));
-            }
-            pts.clear();
-            pts.push(pos2(r.min.x + x as f32, r.min.y + y as f32));
-        }
-        Fl::Line(x, y) => pts.push(pos2(r.min.x + x as f32, r.min.y + y as f32)),
-        Fl::Close => {
-            if pts.len() > 1 {
-                polys.push((std::mem::take(&mut pts), true));
-            }
-        }
-    });
-    if pts.len() > 1 {
-        polys.push((pts, false));
+fn icon_thumbnail(ctx: &egui::Context, icon: &deckcraft_engine::icons::Icon, state: &mut IconGallery) -> Option<egui::TextureId> {
+    if let Some(tex) = state.previews.get(icon.name) {
+        return Some(tex.id());
     }
-    for (poly, closed) in polys {
-        p.add(egui::Shape::Path(egui::epaint::PathShape {
-            points: poly,
-            closed,
-            fill: Color32::TRANSPARENT,
-            stroke: egui::epaint::PathStroke::new(sw, color),
-        }));
+    let mut shape = deckcraft_engine::icons::shape(icon, deckcraft_geom::Xfrm { x: 2.0, y: 2.0, w: 24.0, h: 24.0, ..Default::default() })?;
+    let white = deckcraft_model::Fill::solid(deckcraft_model::ColorRef::rgb(deckcraft_color::Rgba::WHITE));
+    if icon.filled() {
+        shape.fill = Some(white);
+    } else if let Some(line) = &mut shape.line {
+        line.fill = Some(white);
     }
+    let mut doc = deckcraft_model::defaults::new_presentation(None);
+    doc.slide_size = deckcraft_geom::Size::new(28.0, 28.0);
+    let slide = std::sync::Arc::make_mut(doc.slides.first_mut()?);
+    slide.shapes = vec![shape];
+    slide.show_master_shapes = false;
+    let img =
+        deckcraft_render::render_slide(&doc, 0, &deckcraft_render::RenderOpts { scale: 2.0, transparent_background: true, ..Default::default() });
+    let mask = egui::ColorImage::from_rgba_unmultiplied([img.width as usize, img.height as usize], &img.to_straight());
+    if state.previews.len() >= ICON_PAGE * 2 {
+        state.previews.clear();
+    }
+    let tex = ctx.load_texture(icon.name, mask, egui::TextureOptions::LINEAR);
+    let id = tex.id();
+    state.previews.insert(icon.name, tex);
+    Some(id)
 }
 
 /// The chart types in the Insert Chart and Change Chart Type menus: the main ones, a separator

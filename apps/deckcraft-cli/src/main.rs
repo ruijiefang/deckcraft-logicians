@@ -417,7 +417,8 @@ fn render_transition(args: &[String]) -> Result<(), String> {
             }
             None => render::render_transition(doc, i, *t, &opts),
         };
-        std::fs::write(path, img.to_png_at(render::dpi_for_scale(opts.scale))).map_err(|e| format!("{path}: {e}"))?;
+        std::fs::write(path, render::image_credits(img.to_png_at(render::dpi_for_scale(opts.scale)), "png", doc))
+            .map_err(|e| format!("{path}: {e}"))?;
         outln!("{path} ({}×{}) {} {} t={t}", img.width, img.height, tr.kind, tr.option);
     }
     Ok(())

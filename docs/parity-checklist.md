@@ -1,5 +1,6 @@
 # PowerPoint feature checklist
 
+> **Last reviewed:** 2026-11-15 · **Last updated:** 2026-11-15 · **Change:** minor (1,576 Font Awesome Free icons alongside 70 Lucide icons; paged gallery and export attribution; parity scores unchanged). See [icon catalogue](icons.md).
 > **Generated:** 2026-10-14 (bullets/numbering remain D after empty-line marker review; summary by `cargo xtask parity`; rows re-scored by the 2026-10-14 community PR wave, duplicate Thesaurus, AutoCorrect, Artistic effects and Corrections rows folded; Preview in editor re-scored 2026-10-13; earlier rows re-scored 2026-10-10 against PowerPoint for Mac 16.113.4; video/animated GIF row re-scored 2026-10-11, #171) · **Target:** Microsoft PowerPoint for Mac 16.113 (Microsoft 365)
 
 > **Last updated:** 2026-11-15 · Equations row also names algpseudocode algorithms and the Pseudo-code tool (score unchanged). Previous (2026-11-14): Equations row also names tikz-cd commutative diagrams (score unchanged). Previous (2026-11-14): Equations re-scored M → P: LaTeX input as Office Math (`insert.equation`) or typeset formulas, arrays and proof trees (`insert.latex`). Previous (2026-11-03): Community PR wave 10: reflection transforms survive resaves (row stays P, rendering partial); Reuse Slides fits the destination size and brings referenced custom table styles (row stays P, picker has no thumbnails); Compress Pictures measures grouped pictures at displayed size (stays D). Scores unchanged.
@@ -200,7 +201,7 @@ Open P0 items: Contextual tabs (Shape Format, Picture Format, Table Design/Layou
 | Media | Audio/video playback in the show (WMA/WMV not decodable yet) | P0 | P |
 | Media | Trim, fade in/out, volume, loop, play across slides | P2 | D |
 | Media | Record audio / screen recording | P2 | M |
-| Media | Icons, 3-D models, stock content | P2 | M |
+| Media | Icons (70 Lucide + 1,576 Font Awesome Free), 3-D models, stock content | P2 | M |
 | Media | Embedded objects (OLE): insert; foreign objects kept on round trip | P2 | P |
 | Transitions | Transition gallery (fade, push, wipe, split, cover, uncover, zoom, morph…) | P0 | D |
 | Transitions | Effect options and duration | P0 | D |
@@ -244,6 +245,7 @@ Open P0 items: Contextual tabs (Shape Format, Picture Format, Table Design/Layou
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-15 | minor | Insert Icons: 1,576 Font Awesome Free Solid/Regular icons, 70 Lucide icons, searchable filtered pages, editable filled geometry and embedded export credits. Combined icons/3-D/stock score stays M |
 | 2026-11-15 | trivial | Equations row: algpseudocode algorithms, written in the Pseudo-code tool; scores unchanged |
 | 2026-11-14 | trivial | Equations row: tikz-cd commutative diagrams, drawn by DeckCraft and edited on a grid; scores unchanged |
 | 2026-11-14 | minor | Equations M → P: LaTeX input as Office Math or as DeckCraft-typeset formulas, arrays and proof trees; Office Math is still drawn as linear text |

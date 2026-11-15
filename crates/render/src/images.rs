@@ -540,6 +540,23 @@ fn luma(rgb: [f64; 3]) -> f64 {
     0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
 }
 
+/// Embed UTF-8 artwork attribution in a PNG iTXt chunk. Pixel data is untouched.
+pub fn stamp_png_credits(png: &[u8], text: &str) -> Vec<u8> {
+    let Some(end) = ihdr_end(png) else { return png.to_vec() };
+    if text.is_empty() || text.len() > 16 * 1024 * 1024 {
+        return png.to_vec();
+    }
+    let mut body = b"iTXtIcon credits\0\0\0\0\0".to_vec();
+    body.extend_from_slice(text.as_bytes());
+    let mut out = Vec::with_capacity(png.len() + body.len() + 8);
+    out.extend_from_slice(png.get(..end).unwrap_or_default());
+    out.extend_from_slice(&((body.len() - 4) as u32).to_be_bytes());
+    out.extend_from_slice(&body);
+    out.extend_from_slice(&png_crc(&body).to_be_bytes());
+    out.extend_from_slice(png.get(end..).unwrap_or_default());
+    out
+}
+
 #[cfg(test)]
 mod tests {
     #![allow(clippy::expect_used)]

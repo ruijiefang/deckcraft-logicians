@@ -814,6 +814,7 @@ pub(crate) fn web_image_files(
             let opts = deckcraft_render::RenderOpts { scale, transparent_background: transparent && ext == "png", ..Default::default() };
             let img = deckcraft_render::render_slide(doc, i, &opts);
             let bytes = if ext == "png" { img.to_png_at(dpi) } else { img.to_jpeg_at(92, Some(dpi)) };
+            let bytes = deckcraft_render::image_credits(bytes, ext, doc);
             let file = if single { format!("{name}.{ext}") } else { format!("{name}{}.{ext}", k + 1) };
             (file, bytes)
         })
